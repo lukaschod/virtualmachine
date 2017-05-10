@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Code.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\ExternalMemory.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Input.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Output.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\RandomAccessMemory.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\RealMachine.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\VirtualMachine.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\OperationSystem.cpp">
+      <Filter>OperationSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Process.cpp">
+      <Filter>OperationSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Resource.cpp">
+      <Filter>OperationSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\ProcessPlanner.cpp">
+      <Filter>OperationSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\ResourcePlanner.cpp">
+      <Filter>OperationSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessStartStop.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessUser.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessManager.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessExternalMemory.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessIdle.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessSystem.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessProgram.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Code.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\ExternalMemory.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Helper.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\IMemory.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Input.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Output.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\RandomAccessMemory.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\RealMachine.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\VirtualMachine.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\ResourcePlanner.h">
+      <Filter>OperationSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\OperationSystem.h">
+      <Filter>OperationSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Process.h">
+      <Filter>OperationSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\ProcessPlanner.h">
+      <Filter>OperationSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Resource.h">
+      <Filter>OperationSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\IInteruptHandler.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessStartStop.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\ProcessPriorityCalculator.h">
+      <Filter>OperationSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessUser.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessManager.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessExternalMemory.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessIdle.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessSystem.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessProgram.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="VirtualMachine">
+      <UniqueIdentifier>{b588a6eb-f066-40e1-87d0-25e448f78ee1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OperationSystem">
+      <UniqueIdentifier>{42d98582-d8d5-473d-87a7-f45e36be499f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OperationSystem\Processes">
+      <UniqueIdentifier>{658aa751-4c52-438e-adba-afce43e1a206}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

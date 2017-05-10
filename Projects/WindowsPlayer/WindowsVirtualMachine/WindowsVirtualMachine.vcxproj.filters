@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Code.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\ExternalMemory.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Input.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Output.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\RandomAccessMemory.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\RealMachine.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\VirtualMachine.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Code.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\ExternalMemory.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Helper.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\IMemory.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Input.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Output.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\RandomAccessMemory.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\RealMachine.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\VirtualMachine.h" />
+  </ItemGroup>
+</Project>
