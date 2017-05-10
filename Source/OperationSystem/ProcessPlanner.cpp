@@ -211,8 +211,14 @@ void ProcessPlanner::BlockProcess(Process* process)
 	assert(process->Get_state() == ProcessState::kProcessStateRunning);
 	process->Set_state(ProcessState::kProcessStateBlocked);
 
+    auto core = (CentralProcessingUnitCore*)process->Get_processor();
+    assert(core != nullptr);
+    process->Set_processor(nullptr);
+    core->Set_process(nullptr);
+    *process->Get_context() = *core->Get_context();
+
 	VECTOR_REMOVE_ITEM(runningProcesses, process);
-	SwitchContext(process->Get_processor());
+	SwitchContext(core);
 
 	process->CallbackBlock();
 }

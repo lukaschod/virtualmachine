@@ -2,6 +2,7 @@
 #include <OperationSystem\ResourcePlanner.h>
 #include <OperationSystem\ProcessPlanner.h>
 #include <OperationSystem\Processes\ProcessStartStop.h>
+#include <OperationSystem\Processes\ProcessExternalMemory.h>
 #include <OperationSystem\Resource.h>
 #include <VirtualMachine\RealMachine.h>
 #include <VirtualMachine\CentralProcessingUnit.h>
@@ -58,6 +59,48 @@ bool OperationSystem::HandleInterupt(CentralProcessingUnitCore* core)
 	auto process = (Process*) core->Get_process();
 	switch (core->Get_context()->registerINT)
 	{
+    case kInteruptCodeExternalMemoryOpenFile:
+    {
+        auto accessFlag = (FileAccessFlag)core->ExecuteInstructionPop();
+        auto filePathAddress = core->ExecuteInstructionPop();
+        startStopProcess->Get_processExternalMemory()->OpenFile(core, filePathAddress, accessFlag, [process](CentralProcessingUnitCore* core)
+        {
+            core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
+        });
+        break;
+    }
+
+    case kInteruptCodeExternalMemoryCloseFile:
+    {
+        auto fileHandle = core->ExecuteInstructionPop();
+        startStopProcess->Get_processExternalMemory()->CloseFile(core, fileHandle);
+        break;
+    }
+
+    case kInteruptCodeExternalMemoryReadFile:
+    {
+        auto size = core->ExecuteInstructionPop();
+        auto address = core->ExecuteInstructionPop();
+        auto fileHandle = core->ExecuteInstructionPop();
+        startStopProcess->Get_processExternalMemory()->ReadFile(core, fileHandle, address, size, [process](CentralProcessingUnitCore* core)
+        {
+            core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
+        });
+        break;
+    }
+
+    case kInteruptCodeExternalMemoryWriteFile:
+    {
+        auto size = core->ExecuteInstructionPop();
+        auto address = core->ExecuteInstructionPop();
+        auto fileHandle = core->ExecuteInstructionPop();
+        startStopProcess->Get_processExternalMemory()->WriteFile(core, fileHandle, address, size, [process](CentralProcessingUnitCore* core)
+        {
+            core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
+        });
+        break;
+    }
+
 	case kInteruptCodeFailurePage:
 	{
 		auto memoryResource = startStopProcess->Get_memory();

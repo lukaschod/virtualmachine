@@ -50,7 +50,7 @@ void CentralProcessingUnit::Run()
 			if (internalBuiltInDebug)
 			{
 				printf("%s\n", mmu->ToString(this).c_str());
-				printf("%s\n", ram->ToString().c_str());
+				//printf("%s\n", ram->ToString().c_str());
 				printf("%s\n", ToStringStackSegment().c_str());
 				printf("%s\n", ToStringDataSegment().c_str());
 				printf("%s\n", ToString().c_str());
