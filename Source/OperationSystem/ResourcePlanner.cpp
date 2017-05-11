@@ -43,7 +43,7 @@ Resource* ResourcePlanner::CreateResourceMemory(ProcessStartStop* parent, uint32
 { 
 	auto resource = new Resource("Memory", parent, operationSystem);
 	AddResource(resource, parent);
-	for (int i = 0; i < pageCount; i++)
+	for (unsigned int i = 0; i < pageCount; i++)
 	{
 		auto element = new ResourceElement(resource, parent);
 		element->indexReturn = i * pageSize;
@@ -108,10 +108,12 @@ bool ResourcePlanner::RequestResourceElementAny(Resource* resource, Process* pro
 
 bool ResourcePlanner::RequestResourceElement(Resource* resource, ResourceRequest& request)
 {
-	assert(request.requester != nullptr);
+	auto process = request.requester;
+	assert(process != nullptr);
 	if (!CanAquire(resource, request))
 	{
 		resource->Get_requests().push_back(request);
+		process->Set_waitingForResource(resource);
 		processPlanner->BlockProcess(request.requester);
 		return false;
 	}
@@ -125,9 +127,9 @@ void ResourcePlanner::Aquire(Resource* resource, ResourceRequest& request)
 {
 	auto process = request.requester;
 	auto& elements = resource->Get_elements();
-	for (int i = 0; i < request.count; i++)
+	for (unsigned int i = 0; i < request.count; i++)
 	{
-		for (int j = 0; j < elements.size(); j++)
+		for (unsigned int j = 0; j < elements.size(); j++)
 		{
 			auto element = elements[j];
 			if (element->IsMeetRequest(request))
@@ -149,7 +151,7 @@ bool ResourcePlanner::CanAquire(Resource* resource, ResourceRequest& request)
 		return false;
 
 	auto process = request.requester;
-	auto count = 0;
+	unsigned int count = 0;
 
 	for (auto itr = elements.begin(); itr != elements.end() && count < request.count; itr++)
 	{
@@ -164,14 +166,29 @@ bool ResourcePlanner::CanAquire(Resource* resource, ResourceRequest& request)
 void ResourcePlanner::Replan(Resource* resource)
 {
 	auto& requests = resource->Get_requests();
-	for (int i = 0; i < requests.size(); i++)
+	for (unsigned int i = 0; i < requests.size(); i++)
 	{
 		auto request = requests[i];
 		auto process = request.requester;
 		if (CanAquire(resource, request))
 		{
 			Aquire(resource, request);
+			process->Set_waitingForResource(nullptr);
 			processPlanner->UnblockProcess(process);
+			requests.erase(requests.begin() + i);
+			i--;
+		}
+	}
+}
+
+void ResourcePlanner::DestroyAllRequestsFromProcess(Resource* resource, Process* process)
+{
+	auto& requests = resource->Get_requests();
+	for (unsigned int i = 0; i < requests.size(); i++)
+	{
+		auto request = requests[i];
+		if (request.requester == process)
+		{
 			requests.erase(requests.begin() + i);
 			i--;
 		}

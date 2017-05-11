@@ -89,6 +89,11 @@ void ProcessPlanner::KillProcessRecursive(Process* process)
 		KillProcessRecursive(children.back());
 	}
 
+	// Destroy the resource if process is waiting for it
+	auto resource = process->Get_waitingForResource();
+	if (resource)
+		resourcePlanner->DestroyAllRequestsFromProcess(resource, process);
+
 	// TODO: Change it once the process stoping exists
 	switch (process->Get_state())
 	{
@@ -101,6 +106,7 @@ void ProcessPlanner::KillProcessRecursive(Process* process)
 		break;
 	}
 
+	// Remove child pointer from parent
 	if (process->Get_parent() != nullptr)
 		VECTOR_REMOVE_ITEM(process->Get_parent()->Get_children(), process);
 

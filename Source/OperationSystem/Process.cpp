@@ -11,7 +11,8 @@ Process::Process(const char* name, Process* parent, ProcessPriority priority, Op
 	parent(parent),
 	state(ProcessState::kProcessStateReady),
 	priorityCalculator(priority),
-	processor(nullptr)
+	processor(nullptr),
+	waitingForResource(nullptr)
 {
 	fid = operationSystem->GenerateUniqueFid();
 	processPlanner = operationSystem->Get_processPlanner();

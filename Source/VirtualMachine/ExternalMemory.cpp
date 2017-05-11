@@ -24,7 +24,7 @@ uint32_t ExternalMemory::Open(CentralProcessingUnit* core, uint32_t filePathAddr
 
 FileHeader* ExternalMemory::TryOpenFirstAvailableFileHandle(const char* path, FileAccessFlag accessFlag)
 {
-	for (int i = 1; i < files.size(); i++)
+	for (unsigned int i = 1; i < files.size(); i++)
 	{
 		auto header = files.data() + i;
 		if (!header->isUsed)

@@ -17,6 +17,8 @@ enum FlagRegister
 {
 	kFlagRegisterNone = 0,
 	kFlagRegisterInterruptBit = 2 << 0,
+	kFlagRegisterEqualBit = 2 << 1,
+	kFlagRegisterLessBit = 2 << 2,
 };
 
 struct Registers

@@ -53,6 +53,7 @@ protected:
 	AUTOMATED_PROPERTY_GETSET(CentralProcessingUnitCore*, processor);
 	AUTOMATED_PROPERTY_GETPTR(Registers, context);
 	AUTOMATED_PROPERTY_GETADR(std::vector<ProcessKernelInstructions>, queuedKernelInstructions);
+	AUTOMATED_PROPERTY_GETSET(Resource*, waitingForResource);
 	ProcessPriorityCalculator priorityCalculator;
 	ProcessPlanner* processPlanner;
 	ResourcePlanner* resourcePlanner;

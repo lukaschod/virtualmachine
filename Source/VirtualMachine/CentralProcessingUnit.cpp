@@ -178,7 +178,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 	{
 		auto flag = ExecuteInstructionPop();
 		auto address = ExecuteInstructionPop();
-		if (flag == 0)
+		if (HAS_FLAG(context.registerC, kFlagRegisterEqualBit))
 			context.registerIC = address;
 		return;
 	}
@@ -187,7 +187,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 	{
 		auto flag = ExecuteInstructionPop();
 		auto address = ExecuteInstructionPop();
-		if ((flag & (1 << 32)) != 0)
+		if (HAS_FLAG(context.registerC, kFlagRegisterLessBit))
 			context.registerIC = address;
 		return;
 	}
@@ -196,7 +196,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 	{
 		auto flag = ExecuteInstructionPop();
 		auto address = ExecuteInstructionPop();
-		if ((flag & (1 << 32)) != 0 || flag == 0)
+		if (HAS_FLAG(context.registerC, kFlagRegisterEqualBit) || HAS_FLAG(context.registerC, kFlagRegisterLessBit))
 			context.registerIC = address;
 		return;
 	}
@@ -336,7 +336,7 @@ std::string CentralProcessingUnit::ToString()
 
 	auto codeStart = context.registerCS;
 	auto codeEnd = codeStart + (context.registerSS - context.registerCS);
-	for (int i = codeStart; i < codeEnd; )
+	for (unsigned int i = codeStart; i < codeEnd; )
 	{
 		ss << std::right << std::setw(8) << std::setfill('0') << i << ":";
 
@@ -362,7 +362,7 @@ std::string CentralProcessingUnit::ToStringStackSegment()
 
 	auto codeStart = context.registerSS;
 	auto codeEnd = codeStart + (context.registerEN - context.registerSS);
-	for (int i = codeStart; i < codeEnd; )
+	for (unsigned int i = codeStart; i < codeEnd; )
 	{
 		ss << std::right << std::setw(8) << std::setfill('0') << i << ":";
 
@@ -387,7 +387,7 @@ std::string CentralProcessingUnit::ToStringDataSegment()
 
 	auto codeStart = context.registerDS;
 	auto codeEnd = codeStart + (context.registerCS - context.registerDS);
-	for (int i = codeStart; i < codeEnd; )
+	for (unsigned int i = codeStart; i < codeEnd; )
 	{
 		ss << std::right << std::setw(8) << std::setfill('0') << i << ":";
 

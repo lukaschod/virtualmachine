@@ -140,7 +140,7 @@ uint32_t MemoryManagmentUnit::AllocateMemory(CentralProcessingUnit* core, size_t
 	auto addressToAllocate = pageTable.allocatedPageCount * sizeof(PageEntry);
 
 	auto pageCountToAllocate = (size / pageSize) + ((size % pageSize != 0) ? 1 : 0);
-	for (int i = 0; i < pageCountToAllocate; i++)
+	for (unsigned int i = 0; i < pageCountToAllocate; i++)
 	{
 		PageEntry pageEntry;
 		pageEntry.physicalAddress = 0;
@@ -184,7 +184,7 @@ std::string MemoryManagmentUnit::ToString(CentralProcessingUnit* core)
 	ss << std::endl;
 
 	auto addressToAllocate = registerPS + sizeof(PageTable);
-	for (int i = 0; i < pageTable.allocatedPageCount; i++)
+	for (unsigned int i = 0; i < pageTable.allocatedPageCount; i++)
 	{
 		PageEntry pageEntry;
 		ram->ReadToRealMemory(core, addressToAllocate, &pageEntry, sizeof(PageEntry));

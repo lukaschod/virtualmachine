@@ -35,6 +35,7 @@ public:
 	void ProvideResourceElement(ResourceElement* element, Process* process);
 	void ProvideResourceElementAsResponse(Resource* resource, Process* from, Process* to, ResourceResponds response, uint32_t index, uint32_t indexReturn = 0);
 	void DestroyResourceElement(ResourceElement* element, Process* process);
+	void DestroyAllRequestsFromProcess(Resource* resource, Process* process);
 
 private:
 	bool CanAquire(Resource* resource, ResourceRequest& request);

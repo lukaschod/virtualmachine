@@ -87,7 +87,7 @@ std::string RandomAccessMemory::ToString(int columnCount)
 	ss << std::endl;
 
 	int index = 0;
-	for (int i = 0; i < memory.size() / columnCount; i++)
+	for (unsigned int i = 0; i < memory.size() / columnCount; i++)
 	{
 		ss << std::right << std::setw(8) << std::setfill('0') << index << ":";
 		for (int j = 0; j < columnCount; j++)

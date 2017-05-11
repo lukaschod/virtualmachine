@@ -16,7 +16,6 @@ ProcessManager::ProcessManager(ProcessStartStop* parent, OperationSystem* operat
 
 }
 
-
 void ProcessManager::Execute(CentralProcessingUnitCore* core)
 {
 	startStop = operationSystem->Get_startStopProcess(); // Cache it

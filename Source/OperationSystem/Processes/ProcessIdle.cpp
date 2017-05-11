@@ -15,7 +15,7 @@ void ProcessIdle::Execute(CentralProcessingUnitCore* core)
 	static int counter = 0;
 	counter++;
 
-	static const char* pathToFile = "C:\\Users\\Lukas\\Desktop\\myprogram.txt";
+	static const char* pathToFile = "C:\\Users\\Lukas-PC\\Desktop\\myprogram.txt";
 	static uint32_t pathToFileAddress;
 
 	auto startStop = operationSystem->Get_startStopProcess();
@@ -40,7 +40,7 @@ void ProcessIdle::Execute(CentralProcessingUnitCore* core)
 	{
 		const char* source =
 			"DATA FileHandle 0\n"
-			"DATA FilePath &C:\\Users\\Lukas\\Desktop\\random.txt&\n"
+			"DATA FilePath &C:\\Users\\Lukas-PC\\Desktop\\random.txt&\n"
 			"DATA DataToWrite &Writing some stuff for fun...&\n"
 
 			// Open file
