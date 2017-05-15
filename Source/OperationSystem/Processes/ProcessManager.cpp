@@ -19,19 +19,21 @@ ProcessManager::ProcessManager(ProcessStartStop* parent, OperationSystem* operat
 void ProcessManager::Execute(CentralProcessingUnitCore* core)
 {
 	startStop = operationSystem->Get_startStopProcess(); // Cache it
-	resourcePlanner->RequestResourceElementAny(startStop->Get_resourceProcessManager(), this);
+	resourcePlanner->RequestResourceElementAny(startStop->Get_resourceProcessManagerRequest(), this);
 
 	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
 	{
 		auto request = GetRequestedResourceElement();
-		auto mode = request->index;
+		auto mode = request->indexMode;
 		auto sender = request->sender;
+
+		core->Get_context()->registerPS = sender->Get_context()->registerPS;
 
 		switch (mode)
 		{
 		case 0:
 		{
-			startStop->Get_processProgramManager()->CreateProgramFromFile(core, request->index2, [this, sender](CentralProcessingUnitCore* core)
+			startStop->Get_processProgramManager()->LoadProgramFromFile(core, request->index2, [this, sender](CentralProcessingUnitCore* core)
 			{
 				auto error = GetRequestedResourceElementError();
 				if (error == kResourceRespondError)
@@ -48,7 +50,7 @@ void ProcessManager::Execute(CentralProcessingUnitCore* core)
 				auto requestMemoryPageCount = DIVIDE_WITH_FRACTION_ADDED(requestMemoryCount, operationSystem->Get_pageSize());
 				memoryRequest.count = requestMemoryPageCount;
 				memoryRequest.requester = this;
-				resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_memory(), memoryRequest);
+				resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceMemory(), memoryRequest);
 
 				ExecuteWhenRunning([this, sender, requestMemoryPageCount, program](CentralProcessingUnitCore* core)
 				{
@@ -62,6 +64,12 @@ void ProcessManager::Execute(CentralProcessingUnitCore* core)
 						auto processUser = processPlanner->CreateProcessUser(this, "TODO ADD NAME", kProcessPriorityMedium, virtalMachine);
 						resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProcessManagerRespond(),
 							this, sender, kResourceRespondSuccess, 0, ProcessUserToHandle(processUser));
+
+						core->Get_context()->registerPS = processUser->Get_context()->registerPS;
+
+						virtalMachine->WriteDataSegment(core);
+						virtalMachine->WriteCodeSegment(core);
+						virtalMachine->WriteStackSegment(core);
 					});
 				});
 
@@ -93,8 +101,8 @@ void ProcessManager::Execute(CentralProcessingUnitCore* core)
 void ProcessManager::CreateProcessUser(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, ProcessKernelInstructions callback)
 {
 	auto process = (Process*) core->Get_process();
-	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProcessManager(), process);
-	request->index = 0;
+	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProcessManagerRequest(), process);
+	request->indexMode = 0;
 	request->index2 = pathToFileAddress;
 	resourcePlanner->ProvideResourceElement(request, process);
 
@@ -110,8 +118,8 @@ void ProcessManager::CreateProcessUser(CentralProcessingUnitCore* core, uint32_t
 void ProcessManager::DestroyProcessUser(CentralProcessingUnitCore* core, uint32_t processHandle, ProcessKernelInstructions callback)
 {
 	auto process = (Process*) core->Get_process();
-	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProcessManager(), process);
-	request->index = 1;
+	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProcessManagerRequest(), process);
+	request->indexMode = 1;
 	request->index2 = processHandle;
 	resourcePlanner->ProvideResourceElement(request, process);
 

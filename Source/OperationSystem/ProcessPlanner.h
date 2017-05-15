@@ -16,6 +16,8 @@ class ProcessExternalMemory;
 class ProcessManager;
 class ProcessUser;
 class ProcessProgram;
+class ProcessInput;
+class ProcessOutput;
 class VirtualMachine;
 
 class ProcessPlanner
@@ -29,6 +31,8 @@ public:
 	ProcessExternalMemory* CreateProcessExternalMemory(ProcessStartStop* parent);
 	ProcessManager* CreateProcessManager(ProcessStartStop* parent);
 	ProcessProgram* CreateProcessProgram(ProcessStartStop* parent);
+	ProcessInput* CreateProcessInput(ProcessStartStop* parent);
+	ProcessOutput* CreateProcessOutput(ProcessStartStop* parent);
 	ProcessUser* CreateProcessUser(ProcessManager* parent, const char* name, ProcessPriority priority, VirtualMachine* virtualMachine);
 
 	void KillProcess(Process* process);

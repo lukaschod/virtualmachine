@@ -14,13 +14,19 @@ bool Program::CreateFromMemory(CentralProcessingUnitCore* core, uint32_t address
 	memory->ReadToRealMemory(core, address, &header, sizeof(ProgramHeader));
 	address += sizeof(ProgramHeader);
 
-	codeSegment.resize(header.codeSegmentSize / sizeof(uint32_t));
-	memory->ReadToRealMemory(core, address, codeSegment.data(), header.codeSegmentSize);
-	address += header.codeSegmentSize;
+	if (header.codeSegmentSize != 0)
+	{
+		codeSegment.resize(header.codeSegmentSize / sizeof(uint32_t));
+		memory->ReadToRealMemory(core, address, codeSegment.data(), header.codeSegmentSize);
+		address += header.codeSegmentSize;
+	}
 
-	dataSegment.resize(header.dataSegmentSize);
-	memory->ReadToRealMemory(core, address, dataSegment.data(), header.dataSegmentSize);
-	address += header.dataSegmentSize;
+	if (header.dataSegmentSize != 0)
+	{
+		dataSegment.resize(header.dataSegmentSize);
+		memory->ReadToRealMemory(core, address, dataSegment.data(), header.dataSegmentSize);
+		address += header.dataSegmentSize;
+	}
 
 	// TODO: Add validation
 
@@ -34,11 +40,17 @@ bool Program::SaveToMemory(CentralProcessingUnitCore* core, uint32_t address)
 	memory->WriteFromRealMemory(core, &header, address, sizeof(ProgramHeader));
 	address += sizeof(ProgramHeader);
 
-	memory->WriteFromRealMemory(core, codeSegment.data(), address, header.codeSegmentSize);
-	address += header.codeSegmentSize;
-
-	memory->WriteFromRealMemory(core, dataSegment.data(), address, header.dataSegmentSize);
-	address += header.dataSegmentSize;
+	if (header.codeSegmentSize != 0)
+	{
+		memory->WriteFromRealMemory(core, codeSegment.data(), address, header.codeSegmentSize);
+		address += header.codeSegmentSize;
+	}
+	
+	if (header.dataSegmentSize != 0)
+	{
+		memory->WriteFromRealMemory(core, dataSegment.data(), address, header.dataSegmentSize);
+		address += header.dataSegmentSize;
+	}
 
 	// TODO: Add validation
 
@@ -61,6 +73,13 @@ bool Program::CreateFromText(const char* source)
 	header.stackSegmentSize = sizeof(uint32_t) * 10;
 
 	return true;
+}
+
+bool Program::CompileFromMemoryAndCreate(CentralProcessingUnitCore* core, uint32_t address, uint32_t size)
+{
+	auto memory = core->Get_memory();
+	auto range = memory->AddressToPointerRange(core, address, size);
+	return CreateFromText((const char*)range.pointer);
 }
 
 bool Program::CompileInternal(const char* source)
@@ -138,7 +157,7 @@ bool Program::CompileInternal(const char* source)
 
 		if (MovePointerIfSame(source, "HALT"))
 		{
-			codeSegment.push_back(InstructionCode::HALT);
+			codeSegment.push_back(kInstructionCodeHALT);
 			return true;
 		}
 
@@ -153,43 +172,43 @@ bool Program::CompileArithmeticInstructions(const char*& source)
 {
 	if (MovePointerIfSame(source, "ADD"))
 	{
-		codeSegment.push_back(InstructionCode::ADD);
+		codeSegment.push_back(kInstructionCodeADD);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "SUB"))
 	{
-		codeSegment.push_back(InstructionCode::SUB);
+		codeSegment.push_back(kInstructionCodeSUB);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "MUL"))
 	{
-		codeSegment.push_back(InstructionCode::MUL);
+		codeSegment.push_back(kInstructionCodeMUL);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "DIV"))
 	{
-		codeSegment.push_back(InstructionCode::DIV);
+		codeSegment.push_back(kInstructionCodeDIV);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "AND"))
 	{
-		codeSegment.push_back(InstructionCode::AND);
+		codeSegment.push_back(kInstructionCodeAND);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "OR"))
 	{
-		codeSegment.push_back(InstructionCode::OR);
+		codeSegment.push_back(kInstructionCodeOR);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "CMP"))
 	{
-		codeSegment.push_back(InstructionCode::CMP);
+		codeSegment.push_back(kInstructionCodeCMP);
 		return true;
 	}
 
@@ -203,7 +222,7 @@ bool Program::CompileDataManipulationInstructions(const char*& source)
 		uint32_t value;
 		if (MovePointerIfReadedUint32(source, value))
 		{
-			codeSegment.push_back(InstructionCode::LDC);
+			codeSegment.push_back(kInstructionCodeLDC);
 			codeSegment.push_back(value);
 			return true;
 		}
@@ -216,7 +235,7 @@ bool Program::CompileDataManipulationInstructions(const char*& source)
 		uint32_t value;
 		if (MovePointerIfReadedUint32(source, value))
 		{
-			codeSegment.push_back(InstructionCode::LDI);
+			codeSegment.push_back(kInstructionCodeLDI);
 			codeSegment.push_back(value);
 			return true;
 		}
@@ -229,7 +248,7 @@ bool Program::CompileDataManipulationInstructions(const char*& source)
 		uint32_t value;
 		if (MovePointerIfReadedUint32(source, value))
 		{
-			codeSegment.push_back(InstructionCode::STI);
+			codeSegment.push_back(kInstructionCodeSTI);
 			codeSegment.push_back(value);
 			return true;
 		}
@@ -248,7 +267,7 @@ bool Program::CompileInteruptInstructions(const char*& source)
 		if (!MovePointerIfReadedUint32(source, interuptId))
 			return false;
 
-		codeSegment.push_back(InstructionCode::INT);
+		codeSegment.push_back(kInstructionCodeINT);
 		codeSegment.push_back(interuptId);
 
 		return true;
@@ -256,25 +275,25 @@ bool Program::CompileInteruptInstructions(const char*& source)
 
 	if (MovePointerIfSame(source, "JMP"))
 	{
-		codeSegment.push_back(InstructionCode::JMP);
+		codeSegment.push_back(kInstructionCodeJMP);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "JMPE"))
 	{
-		codeSegment.push_back(InstructionCode::JMPE);
+		codeSegment.push_back(kInstructionCodeJMPE);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "JMPL"))
 	{
-		codeSegment.push_back(InstructionCode::JMPL);
+		codeSegment.push_back(kInstructionCodeJMPL);
 		return true;
 	}
 
 	if (MovePointerIfSame(source, "JMPEL"))
 	{
-		codeSegment.push_back(InstructionCode::JMPEL);
+		codeSegment.push_back(kInstructionCodeJMPEL);
 		return true;
 	}
 

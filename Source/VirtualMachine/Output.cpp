@@ -7,7 +7,7 @@ Output::Output()
 {
 }
 
-void Output::PrintToScreen(CentralProcessingUnit* core, uint32_t address)
+void Output::PrintToScreen(CentralProcessingUnitCore* core, uint32_t address)
 {
 	auto memory = core->Get_memory();
 	// TODO: fix this inefficient shit
@@ -16,6 +16,9 @@ void Output::PrintToScreen(CentralProcessingUnit* core, uint32_t address)
 		char letter;
 		memory->ReadToRealMemory(core, address, &letter, sizeof(char));
 		address++;
+
+		if (core->HandleInterupts())
+			return;
 
 		if (letter == '\0')
 			break;

@@ -11,30 +11,16 @@ ResourcePlanner::ResourcePlanner(OperationSystem* operationSystem) :
 	processPlanner = operationSystem->Get_processPlanner();
 }
 
-Resource* ResourcePlanner::CreateResourceOSStop(ProcessStartStop* parent)
-{
-	auto resource = new Resource("OSStop", parent, operationSystem);
-	AddResource(resource, parent);
-	return resource;
-}
-
-Resource* ResourcePlanner::CreateResourceExternalMemoryWait(ProcessStartStop* parent)
+Resource* ResourcePlanner::CreateResourceRequest(ProcessStartStop* parent, const char* name)
 {
 	auto resource = new Resource("ExternalMemoryWait", parent, operationSystem);
 	AddResource(resource, parent);
 	return resource;
 }
 
-Resource* ResourcePlanner::CreateResourceExternalMemoryRespond(ProcessStartStop* parent)
+Resource* ResourcePlanner::CreateResourceRespond(ProcessStartStop* parent, const char* name)
 {
 	auto resource = new Resource("ExternalMemoryRespond", parent, operationSystem);
-	AddResource(resource, parent);
-	return resource;
-}
-
-Resource* ResourcePlanner::CreateResourceProcessManagerWait(ProcessStartStop* parent)
-{
-	auto resource = new Resource("ProcessManagerWait", parent, operationSystem);
 	AddResource(resource, parent);
 	return resource;
 }
@@ -76,7 +62,7 @@ void ResourcePlanner::ProvideResourceElementAsResponse(Resource* resource, Proce
 {
 	auto responseElement = new ResourceElement(resource, from);
 	responseElement->requestIndex = to->Get_fid();
-	responseElement->index = index;
+	responseElement->indexMode = index;
 	responseElement->indexReturn = indexReturn;
 	responseElement->indexError = response;
 	ProvideResourceElement(responseElement, from);

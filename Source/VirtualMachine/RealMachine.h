@@ -11,11 +11,19 @@ class ExternalMemory;
 class Input;
 class Output;
 
+struct RealMachineCreateOptions
+{
+	const char* pathToMachine;
+	size_t maximumOpenedFileCount = 20;
+	size_t pageCount = 40;
+	size_t pageSize = 128;
+};
+
 // Fake real machine that simulates PC components
 class RealMachine
 {
 public:
-	RealMachine();
+	RealMachine(RealMachineCreateOptions& options);
 	~RealMachine();
 
 	void Start();

@@ -11,64 +11,52 @@ RandomAccessMemory::RandomAccessMemory(uint32_t pageCount, uint32_t pageSize) :
 {
 }
 
-void RandomAccessMemory::WriteFromRealMemory(CentralProcessingUnit* core, void* srcPointer, uint32_t dstAddress, size_t size)
+void RandomAccessMemory::WriteFromRealMemory(CentralProcessingUnitCore* core, void* srcPointer, uint32_t dstAddress, size_t size)
 {
 	auto dstPointer = AddressToPointerRange(core, dstAddress, size);
-	if (core->Get_context()->IsInteruptHappened())
+	if (dstPointer.size == 0)
 		return;
 	memcpy(dstPointer.pointer, srcPointer, size);
 }
 
-void RandomAccessMemory::ReadToRealMemory(CentralProcessingUnit* core, uint32_t srcAddress, void* dstPointer, size_t size)
+void RandomAccessMemory::ReadToRealMemory(CentralProcessingUnitCore* core, uint32_t srcAddress, void* dstPointer, size_t size)
 {
 	auto srcPointer = AddressToPointerRange(core, srcAddress, size);
-	if (core->Get_context()->IsInteruptHappened())
+	if (srcPointer.size == 0)
 		return;
 	memcpy(dstPointer, srcPointer.pointer, size);
 }
 
-void RandomAccessMemory::Write(CentralProcessingUnit* core, uint32_t srcAddress, uint32_t dstAddress, size_t size)
+void RandomAccessMemory::Write(CentralProcessingUnitCore* core, uint32_t srcAddress, uint32_t dstAddress, size_t size)
 {
 	auto srcPointer = AddressToPointerRange(core, srcAddress, size);
 	auto dstPointer = AddressToPointerRange(core, dstAddress, size);
-	if (core->Get_context()->IsInteruptHappened())
+	if (srcPointer.size == 0 || dstPointer.size == 0)
 		return;
 	memcpy(dstPointer.pointer, srcPointer.pointer, size);
 }
 
-void RandomAccessMemory::Read(CentralProcessingUnit* core, uint32_t srcAddress, uint32_t dstAddress, size_t size)
+void RandomAccessMemory::Read(CentralProcessingUnitCore* core, uint32_t srcAddress, uint32_t dstAddress, size_t size)
 {
 	auto srcPointer = AddressToPointerRange(core, srcAddress, size);
 	auto dstPointer = AddressToPointerRange(core, dstAddress, size);
-	if (core->Get_context()->IsInteruptHappened())
+	if (srcPointer.size == 0 || dstPointer.size == 0)
 		return;
 	memcpy(dstPointer.pointer, srcPointer.pointer, size);
 }
 
-void RandomAccessMemory::WriteZeros(CentralProcessingUnit* core, uint32_t address, size_t size)
+void RandomAccessMemory::WriteZeros(CentralProcessingUnitCore* core, uint32_t address, size_t size)
 {
 	auto pointer = AddressToPointerRange(core, address, size);
 	memset(pointer.pointer, 0, size);
 }
 
-uint32_t RandomAccessMemory::AllocateMemory(CentralProcessingUnit* core, size_t size)
-{
-	static uint32_t currentCounter = 0;
-
-	auto allocatedAddress = currentCounter;
-	AddressToPointerRange(core, allocatedAddress, size);
-	currentCounter += size;
-
-	return allocatedAddress;
-}
-
-PointerRange RandomAccessMemory::AddressToPointerRange(CentralProcessingUnit* core, uint32_t address, size_t size)
+PointerRange RandomAccessMemory::AddressToPointerRange(CentralProcessingUnitCore* core, uint32_t address, size_t size)
 {
 	assert(size != 0);
 
 	if (address + size > memory.size())
 	{
-		core->SetInterupt(kInteruptCodeFailureMemoryException);
 		return PointerRange();
 	}
 

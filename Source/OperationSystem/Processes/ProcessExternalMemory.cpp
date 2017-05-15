@@ -18,11 +18,13 @@ void ProcessExternalMemory::Execute(CentralProcessingUnitCore* core)
 {
 	resourcePlanner->RequestResourceElementAny(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRequest(), this);
 
-	ExecuteWhenRunning([this](CentralProcessingUnit* core)
+	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
 	{
 		auto request = GetRequestedResourceElement();
-		auto mode = request->index;
+		auto mode = request->indexMode;
         auto sender = request->sender;
+
+		core->Get_context()->registerPS = sender->Get_context()->registerPS;
 
 		switch (mode)
 		{
@@ -30,7 +32,7 @@ void ProcessExternalMemory::Execute(CentralProcessingUnitCore* core)
 		{
 			auto filePathAddress = request->index2;
 			auto accessFlag = (FileAccessFlag) request->index3;
-            USER_SENDER_CONTEX(core, sender, auto fileHandle = core->Get_externalMemory()->Open(core, filePathAddress, accessFlag));
+            auto fileHandle = core->Get_externalMemory()->Open(core, filePathAddress, accessFlag);
 
             if (fileHandle == 0)
             {
@@ -48,7 +50,7 @@ void ProcessExternalMemory::Execute(CentralProcessingUnitCore* core)
 		case 1:
 		{
 			auto fileHandle = request->index2;
-            USER_SENDER_CONTEX(core, sender, core->Get_externalMemory()->Close(core, fileHandle));
+            core->Get_externalMemory()->Close(core, fileHandle);
 
             resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
                 this, sender, kResourceRespondSuccess, 1);
@@ -61,7 +63,7 @@ void ProcessExternalMemory::Execute(CentralProcessingUnitCore* core)
 			auto filePathAddress = request->index2;
 			auto address = request->index3;
 			auto size = request->index4;
-            USER_SENDER_CONTEX(core, sender, auto readSize = core->Get_externalMemory()->Read(core, filePathAddress, address, size));
+            auto readSize = core->Get_externalMemory()->Read(core, filePathAddress, address, size);
 
             resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
                 this, sender, kResourceRespondSuccess, 1, readSize);
@@ -74,7 +76,7 @@ void ProcessExternalMemory::Execute(CentralProcessingUnitCore* core)
 			auto filePathAddress = request->index2;
 			auto address = request->index3;
 			auto size = request->index4;
-            USER_SENDER_CONTEX(core, sender, auto writeSize = core->Get_externalMemory()->Write(core, filePathAddress, address, size));
+            auto writeSize = core->Get_externalMemory()->Write(core, filePathAddress, address, size);
 
             resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
                 this, sender, kResourceRespondSuccess, 1, writeSize);
@@ -93,7 +95,7 @@ void ProcessExternalMemory::OpenFile(CentralProcessingUnit* core, uint32_t fileP
 	auto process = (Process*)core->Get_process();
 
 	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRequest(), process);
-	request->index = 0;
+	request->indexMode = 0;
 	request->index2 = filePathAddress;
 	request->index3 = accessFlag;
 	resourcePlanner->ProvideResourceElement(request, process);
@@ -112,7 +114,7 @@ void ProcessExternalMemory::CloseFile(CentralProcessingUnit* core, uint32_t file
 	auto process = (Process*) core->Get_process();
 
 	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRequest(), process);
-	request->index = 1;
+	request->indexMode = 1;
 	request->index2 = fileHandle;
 	resourcePlanner->ProvideResourceElement(request, process);
 
@@ -130,7 +132,7 @@ void ProcessExternalMemory::ReadFile(CentralProcessingUnit* core, uint32_t fileH
 	auto process = (Process*) core->Get_process();
 
 	auto requestRead = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRequest(), process);
-	requestRead->index = 2;
+	requestRead->indexMode = 2;
 	requestRead->index2 = fileHandle;
 	requestRead->index3 = address;
 	requestRead->index4 = size;
@@ -150,7 +152,7 @@ void ProcessExternalMemory::WriteFile(CentralProcessingUnit* core, uint32_t file
 	auto process = (Process*) core->Get_process();
 
 	auto requestRead = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRequest(), process);
-	requestRead->index = 3;
+	requestRead->indexMode = 3;
 	requestRead->index2 = fileHandle;
 	requestRead->index3 = address;
 	requestRead->index4 = size;

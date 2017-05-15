@@ -65,6 +65,15 @@
     <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessProgram.cpp">
       <Filter>OperationSystem\Processes</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessInput.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessOutput.cpp">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Context.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.h">
@@ -141,6 +150,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessProgram.h">
       <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessInput.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessOutput.h">
+      <Filter>OperationSystem\Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Context.h">
+      <Filter>VirtualMachine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

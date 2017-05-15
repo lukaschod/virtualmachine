@@ -13,9 +13,10 @@ class ProcessProgram : public ProcessSystem
 public:
 	ProcessProgram(ProcessStartStop* parent, OperationSystem* operationSystem);
 
-	void CreateProgramFromFile(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, ProcessKernelInstructions callback);
-	void SaveProgramToFile(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, uint32_t programHandle, ProcessKernelInstructions callback);
-	void DestroyProgram(CentralProcessingUnitCore* core, uint32_t programHandle, ProcessKernelInstructions callback);
+	void CreateProgramFromSource(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, ProcessKernelInstructions callback = nullptr);
+	void LoadProgramFromFile(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, ProcessKernelInstructions callback = nullptr);
+	void SaveProgramToFile(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, uint32_t programHandle, ProcessKernelInstructions callback = nullptr);
+	void DestroyProgram(CentralProcessingUnitCore* core, uint32_t programHandle, ProcessKernelInstructions callback = nullptr);
 
 	Program* HandleToProgram(uint32_t programHandle) { return (Program*) programHandle; } // TODO: make normal table lookup
 	uint32_t ProgramToHandle(Program* program) { return (uint32_t) program; } // TODO: make normal table lookup

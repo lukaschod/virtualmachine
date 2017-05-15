@@ -2,15 +2,19 @@
 #include "MemoryManagmentUnit.h"
 #include "CentralProcessingUnit.h"
 
-ExternalMemory::ExternalMemory(uint32_t maximumFileCount)
+ExternalMemory::ExternalMemory(const char* globalPath, uint32_t maximumFileCount)
 {
+	globalPathSize = strlen(globalPath);
+	memcpy(globalFilePath, globalPath, globalPathSize);
 	files.resize(maximumFileCount);
 }
 
-uint32_t ExternalMemory::Open(CentralProcessingUnit* core, uint32_t filePathAddress, FileAccessFlag accessFlag)
+uint32_t ExternalMemory::Open(CentralProcessingUnitCore* core, uint32_t filePathAddress, FileAccessFlag accessFlag)
 {
 	auto memory = core->Get_memory();
-	auto path = (char*) memory->AddressToPointerRange(core, filePathAddress, 128).pointer;
+	memory->ReadToRealMemory(core, filePathAddress, globalFilePath + globalPathSize, MAX_FILEPATH_SIZE - globalPathSize);
+	//auto path = (char*) memory->AddressToPointerRange(core, filePathAddress, 128).pointer;
+	auto path = globalFilePath;
 	if (path == nullptr || accessFlag == FileAccessFlag::kFileAccessNone)
 		return 0;
 
@@ -48,7 +52,7 @@ FileHeader* ExternalMemory::TryOpenFirstAvailableFileHandle(const char* path, Fi
 	return nullptr;
 }
 
-void ExternalMemory::Close(CentralProcessingUnit* core, uint32_t fileHandle)
+void ExternalMemory::Close(CentralProcessingUnitCore* core, uint32_t fileHandle)
 {
 	auto fileHeader = TryResolveFileHandle(fileHandle);
 	if (fileHeader == nullptr)
@@ -58,7 +62,7 @@ void ExternalMemory::Close(CentralProcessingUnit* core, uint32_t fileHandle)
 	fclose(fileHeader->file);
 }
 
-size_t ExternalMemory::Read(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size)
+size_t ExternalMemory::Read(CentralProcessingUnitCore* core, uint32_t fileHandle, uint32_t address, size_t size)
 {
 	auto memory = core->Get_memory();
 	auto fileHeader = TryResolveFileHandle(fileHandle);
@@ -81,7 +85,7 @@ size_t ExternalMemory::Read(CentralProcessingUnit* core, uint32_t fileHandle, ui
 	return startSize - size;
 }
 
-size_t ExternalMemory::Write(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size)
+size_t ExternalMemory::Write(CentralProcessingUnitCore* core, uint32_t fileHandle, uint32_t address, size_t size)
 {
 	auto memory = core->Get_memory();
 	auto fileHeader = TryResolveFileHandle(fileHandle);
@@ -106,6 +110,9 @@ size_t ExternalMemory::Write(CentralProcessingUnit* core, uint32_t fileHandle, u
 
 FileHeader* ExternalMemory::TryResolveFileHandle(uint32_t fileHandle)
 {
+	if (fileHandle == 0)
+		return nullptr;
+
 	if (files.size() <= fileHandle)
 		return nullptr;
 

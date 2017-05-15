@@ -4,6 +4,7 @@
 #include <VirtualMachine\MemoryManagmentUnit.h>
 #include <VirtualMachine\RandomAccessMemory.h>
 #include <VirtualMachine\IInteruptHandler.h>
+#include <VirtualMachine\Context.h>
 #include <stdint.h>
 #include <thread>
 
@@ -63,7 +64,10 @@ public:
 	void Stop();
 	void WaitTillFinishes();
 
-	void SetInterupt(InteruptCode code);
+	void Run();
+
+	void SetInterupt(InteruptCode code) { context.SetInterupt(code); }
+	bool IsInteruptHappened() { return context.IsInteruptHappened(); }
 	void ExecuteInstructionPush(uint32_t value);
 	uint32_t ExecuteInstructionPop();
 	bool HandleInterupts();
@@ -73,8 +77,7 @@ private:
 	void ExecuteInstructionTest();
 	uint32_t GetNextInstruction();
 	uint32_t AddressToValue(uint32_t address);
-	
-	void Run();
+
 	bool IsInstruction(uint32_t instructionCode, const char* instructionName);
 
 	std::string ToString();
@@ -83,7 +86,7 @@ private:
 
 public:
 	inline bool IsStarted() const { return isStarted; }
-	IMemory* Get_memory() { if (context.IsUserMode()) return mmu; else return ram; }
+	IMemory* Get_memory() { if (context.registerPS != 0) return mmu; else return ram; }
 
 private:
 	AUTOMATED_PROPERTY_GETSET(IInteruptHandler*, interuptHandler);
@@ -98,9 +101,11 @@ private:
 	bool isStarted;
 
 	bool internalBuiltInDebug;
+
+	AUTOMATED_PROPERTY_GETSET(Context*, physicalContext);
 };
 
 class CentralProcessingUnitCore : public CentralProcessingUnit
 {
-
 };
+

@@ -4,7 +4,7 @@
 #include <vector>
 #include <stdio.h>
 
-class CentralProcessingUnit;
+class CentralProcessingUnitCore;
 struct Registers;
 
 class Input
@@ -12,5 +12,5 @@ class Input
 public:
 	Input();
 
-	void ReadUntilEnter(CentralProcessingUnit* core, uint32_t address);
+	void ReadUntilEnter(CentralProcessingUnitCore* core, uint32_t address);
 };

@@ -12,7 +12,7 @@ MemoryManagmentUnit::MemoryManagmentUnit(RandomAccessMemory* ram)
 	this->pageSize = ram->Get_pageSize();
 }
 
-void MemoryManagmentUnit::WriteFromRealMemory(CentralProcessingUnit* core, void* srcPointer, uint32_t dstAddress, size_t size)
+void MemoryManagmentUnit::WriteFromRealMemory(CentralProcessingUnitCore* core, void* srcPointer, uint32_t dstAddress, size_t size)
 {
 	assert(srcPointer != nullptr);
 	assert(size != 0);
@@ -24,7 +24,7 @@ void MemoryManagmentUnit::WriteFromRealMemory(CentralProcessingUnit* core, void*
 		auto range = VirtualToPhysicalAddress(core, dstAddress, size);
 
 		if (core->HandleInterupts())
-			return;
+			continue;
 
 		ram->WriteFromRealMemory(core, currentSrcPointer, range.address, range.size);
 		dstAddress += range.size;
@@ -33,7 +33,7 @@ void MemoryManagmentUnit::WriteFromRealMemory(CentralProcessingUnit* core, void*
 	}
 }
 
-void MemoryManagmentUnit::ReadToRealMemory(CentralProcessingUnit* core, uint32_t srcAddress, void* dstPointer, size_t size)
+void MemoryManagmentUnit::ReadToRealMemory(CentralProcessingUnitCore* core, uint32_t srcAddress, void* dstPointer, size_t size)
 {
 	assert(dstPointer != nullptr);
 	assert(size != 0);
@@ -45,7 +45,7 @@ void MemoryManagmentUnit::ReadToRealMemory(CentralProcessingUnit* core, uint32_t
 		auto range = VirtualToPhysicalAddress(core, srcAddress, size);
 
 		if (core->HandleInterupts())
-			return;
+			continue;
 
 		ram->ReadToRealMemory(core, range.address, currentDstPointer, range.size);
 		srcAddress += range.size;
@@ -54,7 +54,7 @@ void MemoryManagmentUnit::ReadToRealMemory(CentralProcessingUnit* core, uint32_t
 	}
 }
 
-void MemoryManagmentUnit::Write(CentralProcessingUnit* core, uint32_t srcAddress, uint32_t dstAddress, size_t size)
+void MemoryManagmentUnit::Write(CentralProcessingUnitCore* core, uint32_t srcAddress, uint32_t dstAddress, size_t size)
 {
 	assert(size != 0);
 	while (size != 0)
@@ -65,7 +65,7 @@ void MemoryManagmentUnit::Write(CentralProcessingUnit* core, uint32_t srcAddress
 		auto copyRange = __min(srcRange.size, dstRange.size);
 
 		if (core->HandleInterupts())
-			return;
+			continue;
 
 		ram->Write(core, srcRange.address, dstRange.address, copyRange);
 		srcAddress += copyRange;
@@ -74,7 +74,7 @@ void MemoryManagmentUnit::Write(CentralProcessingUnit* core, uint32_t srcAddress
 	}
 }
 
-void MemoryManagmentUnit::Read(CentralProcessingUnit* core, uint32_t srcAddress, uint32_t dstAddress, size_t size)
+void MemoryManagmentUnit::Read(CentralProcessingUnitCore* core, uint32_t srcAddress, uint32_t dstAddress, size_t size)
 {
 	assert(size != 0);
 	while (size != 0)
@@ -85,7 +85,7 @@ void MemoryManagmentUnit::Read(CentralProcessingUnit* core, uint32_t srcAddress,
 		auto copyRange = __min(srcRange.size, dstRange.size);
 
 		if (core->HandleInterupts())
-			return;
+			continue;
 
 		ram->Read(core, srcRange.address, dstRange.address, copyRange);
 		srcAddress += copyRange;
@@ -94,13 +94,13 @@ void MemoryManagmentUnit::Read(CentralProcessingUnit* core, uint32_t srcAddress,
 	}
 }
 
-PointerRange MemoryManagmentUnit::AddressToPointerRange(CentralProcessingUnit* core, uint32_t address, size_t size)
+PointerRange MemoryManagmentUnit::AddressToPointerRange(CentralProcessingUnitCore* core, uint32_t address, size_t size)
 {
 	auto range = VirtualToPhysicalAddress(core, address, size);
 	return ram->AddressToPointerRange(core, range.address, range.size);
 }
 
-AddressRange MemoryManagmentUnit::VirtualToPhysicalAddress(CentralProcessingUnit* core,
+AddressRange MemoryManagmentUnit::VirtualToPhysicalAddress(CentralProcessingUnitCore* core,
 	uint32_t virtualAddress, size_t virtualAddressRange)
 {
 	auto registerPS = core->Get_context()->registerPS;
@@ -109,6 +109,9 @@ AddressRange MemoryManagmentUnit::VirtualToPhysicalAddress(CentralProcessingUnit
 
 	PageEntry pageEntry;
 	ram->ReadToRealMemory(core, physicalPageAddress, &pageEntry, sizeof(PageEntry));
+
+	assert(pageEntry.isAllocated == 0 || pageEntry.isAllocated == 1);
+	assert(pageEntry.isPhysicalAddressValid == 0 || pageEntry.isPhysicalAddressValid == 1);
 
 	// Check if memory is actually allocated in table
 	if (!pageEntry.isAllocated)
@@ -131,7 +134,7 @@ AddressRange MemoryManagmentUnit::VirtualToPhysicalAddress(CentralProcessingUnit
 	return addressRange;
 }
 
-uint32_t MemoryManagmentUnit::AllocateMemory(CentralProcessingUnit* core, size_t size)
+uint32_t MemoryManagmentUnit::AllocateMemory(CentralProcessingUnitCore* core, size_t size)
 {
 	auto registerPS = core->Get_context()->registerPS;
 	PageTable pageTable;
@@ -155,7 +158,7 @@ uint32_t MemoryManagmentUnit::AllocateMemory(CentralProcessingUnit* core, size_t
 	return addressToAllocate;
 }
 
-void MemoryManagmentUnit::AllocatePage(CentralProcessingUnit* core, uint32_t pageIndex, uint32_t physicalAddress)
+void MemoryManagmentUnit::AllocatePage(CentralProcessingUnitCore* core, uint32_t pageIndex, uint32_t physicalAddress)
 {
 	auto context = core->Get_context();
 	auto physicalPageAddress = context->registerPS + sizeof(PageTable) + pageIndex * sizeof(PageEntry);
@@ -168,7 +171,7 @@ void MemoryManagmentUnit::AllocatePage(CentralProcessingUnit* core, uint32_t pag
 	ram->WriteFromRealMemory(core, &pageEntry, physicalPageAddress, sizeof(PageEntry));
 }
 
-std::string MemoryManagmentUnit::ToString(CentralProcessingUnit* core)
+std::string MemoryManagmentUnit::ToString(CentralProcessingUnitCore* core)
 {
 	auto registerPS = core->Get_context()->registerPS;
 	PageTable pageTable;
@@ -184,10 +187,14 @@ std::string MemoryManagmentUnit::ToString(CentralProcessingUnit* core)
 	ss << std::endl;
 
 	auto addressToAllocate = registerPS + sizeof(PageTable);
-	for (unsigned int i = 0; i < pageTable.allocatedPageCount; i++)
+	for (unsigned int i = 0; i < core->Get_ram()->Get_pageCount(); i++)
 	{
 		PageEntry pageEntry;
 		ram->ReadToRealMemory(core, addressToAllocate, &pageEntry, sizeof(PageEntry));
+
+		if (pageEntry.isAllocated == 0)
+			break;
+
 		ss << std::right << std::setw(8) << std::setfill('0') << addressToAllocate << ":";
 		ss << std::right << std::setw(16) << std::setfill(' ') << (pageEntry.isAllocated ? "True" : "False");
 		ss << std::right << std::setw(20) << std::setfill(' ') << (pageEntry.isPhysicalAddressValid ? "True" : "False");

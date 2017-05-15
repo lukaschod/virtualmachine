@@ -10,6 +10,13 @@
 #include <sstream>
 #include <iomanip>
 
+#define START_SUPERVISOR_MODE \
+	auto cachedUserMode = context.registerUserMode; \
+	context.registerUserMode = false;
+
+#define END_SUPERVISOR_MODE \
+	context.registerUserMode = cachedUserMode;
+
 CentralProcessingUnit::CentralProcessingUnit(RandomAccessMemory* ram, ExternalMemory* externalMemory, Input* input, Output* output)
 {
 	assert(externalMemory != nullptr);
@@ -35,8 +42,12 @@ void CentralProcessingUnit::Start()
 
 void CentralProcessingUnit::Run()
 {
+	if (physicalContext == nullptr)
+		physicalContext = new Context();
 	while (isStarted)
 	{
+		// In this implementation supervisor code is not executed by instructions, but by hard code.
+		// For this reason we execute here all the queued supervisor code.
 		if (interuptHandler != nullptr && interuptHandler->ShouldSkipNextInstruction((CentralProcessingUnitCore*)this))
 			continue;
 
@@ -47,20 +58,32 @@ void CentralProcessingUnit::Run()
 		else
 		{
 			context.registerTimer--;
+
+			// This code is only for testing, as in real OS debugger is a process that controls other process
 			if (internalBuiltInDebug)
 			{
-				printf("%s\n", mmu->ToString(this).c_str());
-				//printf("%s\n", ram->ToString().c_str());
+				START_SUPERVISOR_MODE
+
+				printf("%s\n", ram->ToString().c_str());
+				printf("%s\n", mmu->ToString((CentralProcessingUnitCore*)this).c_str());
 				printf("%s\n", ToStringStackSegment().c_str());
 				printf("%s\n", ToStringDataSegment().c_str());
+
 				printf("%s\n", ToString().c_str());
 				printf("\n<PRESS ANY KEY TO CONTINUE>\n");
 				getchar();
+
+				END_SUPERVISOR_MODE
 			}
+
+			// Here we execute next instruction in CPU
 			ExecuteInstruction();
 		}
+
+		// Here we handle the interupts that happened during instruction execution
 		ExecuteInstructionTest();
 	}
+	delete physicalContext;
 }
 
 void CentralProcessingUnit::WaitTillFinishes()
@@ -75,13 +98,12 @@ void CentralProcessingUnit::Stop()
 
 void CentralProcessingUnit::ExecuteInstruction()
 {
-	context.registerLastIC = context.registerIC;
-	auto instructionCode = GetNextInstruction();
+	context.registerLastIC = context.registerIC; // TODO: maybe find a better way to habdle pagefailure instruction rollback
 
+	auto instructionCode = GetNextInstruction();
 	switch (instructionCode)
 	{
-
-	case InstructionCode::ADD:
+	case kInstructionCodeADD:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
@@ -89,7 +111,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::SUB:
+	case kInstructionCodeSUB:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
@@ -97,7 +119,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::MUL:
+	case kInstructionCodeMUL:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
@@ -105,7 +127,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::DIV:
+	case kInstructionCodeDIV:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
@@ -113,7 +135,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::AND:
+	case kInstructionCodeAND:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
@@ -121,7 +143,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::OR:
+	case kInstructionCodeOR:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
@@ -129,7 +151,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::CMP:
+	case kInstructionCodeCMP:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
@@ -137,44 +159,44 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::LDC:
+	case kInstructionCodeLDC:
 	{
 		auto value = GetNextInstruction();
 		ExecuteInstructionPush(value);
 		return;
 	}
 
-	case InstructionCode::LDI:
+	case kInstructionCodeLDI:
 	{
 		auto value = AddressToValue(GetNextInstruction());
 		ExecuteInstructionPush(value);
 		return;
 	}
 
-	case InstructionCode::STI:
+	case kInstructionCodeSTI:
 	{
 		auto address = GetNextInstruction();
 		auto value = ExecuteInstructionPop();
-		mmu->WriteFromRealMemory(this, &value, address);
+		mmu->WriteFromRealMemory((CentralProcessingUnitCore*)this, &value, address);
 		
 		return;
 	}
 
-	case InstructionCode::INT:
+	case kInstructionCodeINT:
 	{
 		auto interuptCode = GetNextInstruction();
 		SetInterupt((InteruptCode) interuptCode);
 		return;
 	}
 
-	case InstructionCode::JMP:
+	case kInstructionCodeJMP:
 	{
 		auto address = ExecuteInstructionPop();
 		context.registerIC = address;
 		return;
 	}
 
-	case InstructionCode::JMPE:
+	case kInstructionCodeJMPE:
 	{
 		auto flag = ExecuteInstructionPop();
 		auto address = ExecuteInstructionPop();
@@ -183,7 +205,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::JMPL:
+	case kInstructionCodeJMPL:
 	{
 		auto flag = ExecuteInstructionPop();
 		auto address = ExecuteInstructionPop();
@@ -192,7 +214,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::JMPEL:
+	case kInstructionCodeJMPEL:
 	{
 		auto flag = ExecuteInstructionPop();
 		auto address = ExecuteInstructionPop();
@@ -201,7 +223,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case InstructionCode::HALT:
+	case kInstructionCodeHALT:
 		context.registerINT = kInteruptCodeHalt;
 		context.registerC |= kFlagRegisterInterruptBit;
 		return;
@@ -213,82 +235,86 @@ void CentralProcessingUnit::ExecuteInstruction()
 
 void CentralProcessingUnit::ExecuteInstructionTest()
 {
+	START_SUPERVISOR_MODE
+
 	if (!context.IsInteruptHappened())
 		return;
 
 	context.registerC ^= kFlagRegisterInterruptBit;
 
 	// Run overrided interupt handlers
-	if (interuptHandler && interuptHandler->HandleInterupt((CentralProcessingUnitCore*)this))
-		return;
+	if (!interuptHandler || !interuptHandler->HandleInterupt((CentralProcessingUnitCore*)this))
+	{
+		switch (context.registerINT)
+		{
+		case kInteruptCodeInputReadUntilEnter:
+		{
+			auto address = ExecuteInstructionPop();
+			input->ReadUntilEnter((CentralProcessingUnitCore*)this, address);
+			break;
+		}
 
-	switch (context.registerINT)
-	{
-	case kInteruptCodeInputReadUntilEnter:
-	{
-		auto address = ExecuteInstructionPop();
-		input->ReadUntilEnter(this, address);
-		break;
+		case kInteruptCodeOutputPrintToScreen:
+		{
+			auto address = ExecuteInstructionPop();
+			output->PrintToScreen((CentralProcessingUnitCore*)this, address);
+			break;
+		}
+
+		case kInteruptCodeExternalMemoryOpenFile:
+		{
+			auto accessFlag = ExecuteInstructionPop();
+			auto filePathAddress = ExecuteInstructionPop();
+			auto fileHandle = externalMemory->Open((CentralProcessingUnitCore*)this, filePathAddress, (FileAccessFlag) accessFlag);
+			ExecuteInstructionPush(fileHandle);
+			break;
+		}
+
+		case kInteruptCodeExternalMemoryCloseFile:
+		{
+			auto fileHandle = ExecuteInstructionPop();
+			externalMemory->Close((CentralProcessingUnitCore*)this, fileHandle);
+			break;
+		}
+
+		case kInteruptCodeExternalMemoryReadFile:
+		{
+			auto size = ExecuteInstructionPop();
+			auto address = ExecuteInstructionPop();
+			auto fileHandle = ExecuteInstructionPop();
+			externalMemory->Read((CentralProcessingUnitCore*)this, fileHandle, address, size);
+			break;
+		}
+
+		case kInteruptCodeExternalMemoryWriteFile:
+		{
+			auto size = ExecuteInstructionPop();
+			auto address = ExecuteInstructionPop();
+			auto fileHandle = ExecuteInstructionPop();
+			externalMemory->Write((CentralProcessingUnitCore*)this, fileHandle, address, size);
+			break;
+		}
+
+		case kInteruptCodeFailureGeneral:
+		case kInteruptCodeFailureMemoryException:
+		case kInteruptCodeHalt:
+		{
+			isStarted = false;
+			break;
+		}
+
+		case kInteruptCodeFailurePage:
+		{
+			/*auto pageEntryAddress = ExecuteInstructionPop();
+			auto address = ram->AllocateMemory(this, mmu->Get_pageSize());
+			mmu->AllocatePage(this, pageEntryAddress, address);
+			context.registerIC = context.registerLastIC; // Rollback the instructions*/
+			break;
+		}
+		}
 	}
 
-	case kInteruptCodeOutputPrintToScreen:
-	{
-		auto address = ExecuteInstructionPop();
-		output->PrintToScreen(this, address);
-		break;
-	}
-
-	case kInteruptCodeExternalMemoryOpenFile:
-	{
-		auto accessFlag = ExecuteInstructionPop();
-		auto filePathAddress = ExecuteInstructionPop();
-		auto fileHandle = externalMemory->Open(this, filePathAddress, (FileAccessFlag) accessFlag);
-		ExecuteInstructionPush(fileHandle);
-		break;
-	}
-
-	case kInteruptCodeExternalMemoryCloseFile:
-	{
-		auto fileHandle = ExecuteInstructionPop();
-		externalMemory->Close(this, fileHandle);
-		break;
-	}
-
-	case kInteruptCodeExternalMemoryReadFile:
-	{
-		auto size = ExecuteInstructionPop();
-		auto address = ExecuteInstructionPop();
-		auto fileHandle = ExecuteInstructionPop();
-		externalMemory->Read(this, fileHandle, address, size);
-		break;
-	}
-
-	case kInteruptCodeExternalMemoryWriteFile:
-	{
-		auto size = ExecuteInstructionPop();
-		auto address = ExecuteInstructionPop();
-		auto fileHandle = ExecuteInstructionPop();
-		externalMemory->Write(this, fileHandle, address, size);
-		break;
-	}
-
-	case kInteruptCodeFailureGeneral:
-	case kInteruptCodeFailureMemoryException:
-	case kInteruptCodeHalt:
-	{
-		isStarted = false;
-		break;
-	}
-
-	case kInteruptCodeFailurePage:
-	{
-		auto pageEntryAddress = ExecuteInstructionPop();
-		auto address = ram->AllocateMemory(this, mmu->Get_pageSize());
-		mmu->AllocatePage(this, pageEntryAddress, address);
-		context.registerIC = context.registerLastIC; // Rollback the instructions
-		break;
-	}
-	}
+	END_SUPERVISOR_MODE
 }
 
 bool CentralProcessingUnit::IsInstruction(uint32_t instructionCode, const char* instructionName)
@@ -299,7 +325,7 @@ bool CentralProcessingUnit::IsInstruction(uint32_t instructionCode, const char* 
 uint32_t CentralProcessingUnit::GetNextInstruction()
 {
 	uint32_t value;
-	mmu->ReadToRealMemory(this, context.registerIC, &value);
+	mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, context.registerIC, &value);
 	context.registerIC += 4;
 	return value;
 }
@@ -307,7 +333,7 @@ uint32_t CentralProcessingUnit::GetNextInstruction()
 uint32_t CentralProcessingUnit::AddressToValue(uint32_t address)
 {
 	uint32_t value;
-	mmu->ReadToRealMemory(this, address, &value);
+	mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, address, &value);
 	return value;
 }
 
@@ -315,13 +341,13 @@ uint32_t CentralProcessingUnit::ExecuteInstructionPop()
 {
 	uint32_t currentStackValue;
 	context.registerSC -= 4;
-	mmu->ReadToRealMemory(this, context.registerSC, &currentStackValue);
+	mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, context.registerSC, &currentStackValue);
 	return currentStackValue;
 }
 
 void CentralProcessingUnit::ExecuteInstructionPush(uint32_t value)
 {
-	mmu->WriteFromRealMemory(this, &value, context.registerSC);
+	mmu->WriteFromRealMemory((CentralProcessingUnitCore*)this, &value, context.registerSC);
 	context.registerSC += 4;
 }
 
@@ -341,7 +367,7 @@ std::string CentralProcessingUnit::ToString()
 		ss << std::right << std::setw(8) << std::setfill('0') << i << ":";
 
 		uint32_t memory;
-		mmu->ReadToRealMemory(this, i, &memory);
+		mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, i, &memory);
 		ss << std::right << std::setw(4) << std::setfill(' ') << ((i == context.registerIC) ? " > " : "  ");
 		ss << std::right << std::setw(16) << std::setfill(' ') << memory;
 		ss << std::endl;
@@ -367,9 +393,17 @@ std::string CentralProcessingUnit::ToStringStackSegment()
 		ss << std::right << std::setw(8) << std::setfill('0') << i << ":";
 
 		uint32_t memory;
-		mmu->ReadToRealMemory(this, i, &memory);
+		mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, i, &memory);
 		ss << std::right << std::setw(4) << std::setfill(' ') << ((i == context.registerSC) ? " > " : "  ");
-		ss << std::right << std::setw(8) << std::setfill(' ') << memory;
+		if (context.IsInteruptHappened())
+		{
+			ss << std::right << std::setw(8) << std::setfill(' ') << "?";
+			context.registerC ^= kFlagRegisterInterruptBit;
+		}
+		else
+		{
+			ss << std::right << std::setw(8) << std::setfill(' ') << memory;
+		}
 		ss << std::endl;
 		i += sizeof(uint32_t);
 	}
@@ -392,21 +426,28 @@ std::string CentralProcessingUnit::ToStringDataSegment()
 		ss << std::right << std::setw(8) << std::setfill('0') << i << ":";
 
 		uint32_t memory;
-		mmu->ReadToRealMemory(this, i, &memory);
-		ss << std::right << std::setw(8) << std::setfill(' ') << (memory & 255);
-		ss << std::right << std::setw(8) << std::setfill(' ') << ((memory >> 8) & 255);
-		ss << std::right << std::setw(8) << std::setfill(' ') << ((memory >> 16) & 255);
-		ss << std::right << std::setw(8) << std::setfill(' ') << ((memory >> 24) & 255);
+		mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, i, &memory);
+		if (context.IsInteruptHappened())
+		{
+			ss << std::right << std::setw(8) << std::setfill(' ') << "?";
+			ss << std::right << std::setw(8) << std::setfill(' ') << "?";
+			ss << std::right << std::setw(8) << std::setfill(' ') << "?";
+			ss << std::right << std::setw(8) << std::setfill(' ') << "?";
+			context.registerC ^= kFlagRegisterInterruptBit;
+		}
+		else
+		{
+			ss << std::right << std::setw(8) << std::setfill(' ') << (memory & 255);
+			ss << std::right << std::setw(8) << std::setfill(' ') << ((memory >> 8) & 255);
+			ss << std::right << std::setw(8) << std::setfill(' ') << ((memory >> 16) & 255);
+			ss << std::right << std::setw(8) << std::setfill(' ') << ((memory >> 24) & 255);
+		}
+		
 		ss << std::endl;
 		i += sizeof(uint32_t);
 	}
 
 	return ss.str();
-}
-
-void CentralProcessingUnit::SetInterupt(InteruptCode code)
-{
-	context.SetInterupt(code);
 }
 
 bool CentralProcessingUnit::HandleInterupts()
@@ -417,8 +458,8 @@ bool CentralProcessingUnit::HandleInterupts()
 	if (context.IsUserMode())
 		return true;
 
-	// On kernel code we need to handle interupts immediatly
-	// Because kernel code is not executed here by instruction
+	// On supervisor code we need to handle interupts immediatly
+	// Because supervisor code is not executed here by instruction
 	ExecuteInstructionTest();
 	return true;
 }

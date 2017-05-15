@@ -6,81 +6,29 @@
 #include <VirtualMachine\Code.h>
 #include <iostream>
 
-/*Process* CreateProcess1(OperationSystem* operationSystem)
-{
-	const char* source =
-		"DATA FileHandle 0\n"
-		"DATA FilePath &C:\\Users\\Lukas-PC\\Desktop\\random.txt&\n"
-		"DATA DataToWrite &Writing some stuff for fun...&\n"
-
-		// Open file
-		"LDC FilePath\n"
-		"LDC 2\n"
-		"INT 2\n"
-		"STI FileHandle\n"
-
-		// Write to file
-		"LDI FileHandle\n"
-		"LDC DataToWrite\n"
-		"LDC 8\n"
-		"INT 5\n"
-
-		// Close file
-		"LDI FileHandle\n"
-		"INT 3\n"
-
-		"HALT";
-
-	auto code = new Code();
-	assert(code->Compile(source));
-
-	auto process = new ProcessUser("CreateFile", operationSystem->Get_startStopProcess(), ProcessPriority::kProcessPrioritykProcessPriorityLow, operationSystem, code);
-	return process;
-}
-
-Process* CreateProcess2(OperationSystem* operationSystem)
-{
-	const char* source =
-		"DATA FileHandle 0\n"
-		"DATA FilePath &C:\\Users\\Lukas-PC\\Desktop\\random2.txt&\n"
-		"DATA DataToWrite &Writing some stuff for fun...&\n"
-
-		// Open file
-		"LDC FilePath\n"
-		"LDC 2\n"
-		"INT 2\n"
-		"STI FileHandle\n"
-
-		// Write to file
-		"LDI FileHandle\n"
-		"LDC DataToWrite\n"
-		"LDC 8\n"
-		"INT 5\n"
-
-		// Close file
-		"LDI FileHandle\n"
-		"INT 3\n"
-
-		"HALT";
-
-	auto code = new Code();
-	assert(code->Compile(source));
-
-	auto process = new ProcessUser("CreateFile", operationSystem->Get_startStopProcess(), ProcessPriority::kProcessPrioritykProcessPriorityLow, operationSystem, code);
-	return process;
-}*/
-
 int main(int argv, char* argc[])
 {
-	auto operationSystem = new OperationSystem();
+	// We initialize the hardware layer that will simulate our real PC hardware components
+	auto realMachineOptions = RealMachineCreateOptions();
+	realMachineOptions.pathToMachine = "C:\\Users\\Lukas-PC\\Desktop\\MyVirtualMachine\\";
+	realMachineOptions.pageCount = 28;
+	auto realMachine = new RealMachine(realMachineOptions);
 
-	//CreateProcess1(operationSystem);
-	//CreateProcess2(operationSystem);
+	const char* biosSource =
+		"DATA pathToOS &myOS.dll&\n"
+		"LDC pathToOS\n"
+		"INT 14 \n";
 
-	operationSystem->Start();
-	operationSystem->WaitTillFinishes();
+	// We create operation system:
+	// Allocate supervisor memory and apply it on real machine memory
+	auto operationSystem = new OperationSystem(realMachine); 
 
+	realMachine->Start(); // Start the real machine cores to run
+	realMachine->WaitTillFinishes(); // Wat till real machine finishes
+
+	// Cleanup everything
 	delete operationSystem;
+	delete realMachine;
 
 	return 0;
 }

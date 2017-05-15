@@ -11,16 +11,20 @@
 ProcessStartStop::ProcessStartStop(OperationSystem* operationSystem) : 
 	ProcessSystem("StartStop", nullptr, kProcessPriorityHigh, operationSystem)
 {
-	// Create resources
-	waitForStop = resourcePlanner->CreateResourceOSStop(this);
-	resourceProcessManager = resourcePlanner->CreateResourceProcessManagerWait(this);
-	resourceProcessManagerRespond = resourcePlanner->CreateResourceProcessManagerWait(this);
+	// Create resources:
 	auto ram = operationSystem->Get_realMachine()->GetRam();
-	memory = resourcePlanner->CreateResourceMemory(this, ram->Get_pageCount(), ram->Get_pageSize());
-	resourceExternalMemoryRequest = resourcePlanner->CreateResourceExternalMemoryWait(this);
-	resourceExternalMemoryRespond = resourcePlanner->CreateResourceExternalMemoryRespond(this);
-	resourceProgramManagerRequest = resourcePlanner->CreateResourceExternalMemoryWait(this);
-	resourceProgramManagerRespond = resourcePlanner->CreateResourceExternalMemoryRespond(this);
+	resourceMemory = resourcePlanner->CreateResourceMemory(this, ram->Get_pageCount(), ram->Get_pageSize());
+	resourceOSStopRequest = resourcePlanner->CreateResourceRequest(this, "resourceOSStopRequest");
+	resourceExternalMemoryRequest = resourcePlanner->CreateResourceRequest(this, "resourceExternalMemoryRequest");
+	resourceExternalMemoryRespond = resourcePlanner->CreateResourceRespond(this, "resourceExternalMemoryRespond");
+	resourceProgramManagerRequest = resourcePlanner->CreateResourceRequest(this, "resourceProgramManagerRequest");
+	resourceProgramManagerRespond = resourcePlanner->CreateResourceRespond(this, "resourceProgramManagerRespond");
+	resourceProcessManagerRequest = resourcePlanner->CreateResourceRequest(this, "resourceProcessManagerRequest");
+	resourceProcessManagerRespond = resourcePlanner->CreateResourceRespond(this, "resourceProcessManagerRespond");
+	resourceOutputRequest = resourcePlanner->CreateResourceRequest(this, "resourceOutputRequest");
+	resourceOutputRespond = resourcePlanner->CreateResourceRespond(this, "resourceOutputRespond");
+	resourceInputRequest = resourcePlanner->CreateResourceRequest(this, "resourceInputRequest");
+	resourceInputRespond = resourcePlanner->CreateResourceRespond(this, "resourceInputRespond");
 
 	// Create processes
 	processManager = processPlanner->CreateProcessManager(this);
@@ -31,13 +35,14 @@ ProcessStartStop::ProcessStartStop(OperationSystem* operationSystem) :
 
 void ProcessStartStop::Execute(CentralProcessingUnitCore* core)
 {
-	resourcePlanner->RequestResourceElementAny(waitForStop, this);
+	resourcePlanner->RequestResourceElementAny(resourceOSStopRequest, this);
 
 	ExecuteWhenRunning([this](CentralProcessingUnit* core)
 	{
 		auto request = GetRequestedResourceElement();
 		resourcePlanner->DestroyResourceElement(request, this);
 		
+		operationSystem->Get_realMachine()->Stop();
 		processPlanner->KillProcess(this);
 	});
 }
@@ -45,7 +50,7 @@ void ProcessStartStop::Execute(CentralProcessingUnitCore* core)
 void ProcessStartStop::StopOperationSystem(CentralProcessingUnitCore* core, ProcessKernelInstructions callback)
 {
 	auto process = (Process*) core->Get_process();
-	auto response = new ResourceElement(operationSystem->Get_startStopProcess()->Get_waitForStop(), process);
+	auto response = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceOSStopRequest(), process);
 	resourcePlanner->ProvideResourceElement(response, process);
 
 	if (callback != nullptr)

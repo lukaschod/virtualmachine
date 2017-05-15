@@ -116,7 +116,9 @@
     <ClCompile Include="..\..\..\Source\OperationSystem\Process.cpp" />
     <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessExternalMemory.cpp" />
     <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessIdle.cpp" />
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessInput.cpp" />
     <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessManager.cpp" />
+    <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessOutput.cpp" />
     <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessProgram.cpp" />
     <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessStartStop.cpp" />
     <ClCompile Include="..\..\..\Source\OperationSystem\Processes\ProcessSystem.cpp" />
@@ -126,6 +128,7 @@
     <ClCompile Include="..\..\..\Source\OperationSystem\ResourcePlanner.cpp" />
     <ClCompile Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.cpp" />
     <ClCompile Include="..\..\..\Source\VirtualMachine\Code.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Context.cpp" />
     <ClCompile Include="..\..\..\Source\VirtualMachine\ExternalMemory.cpp" />
     <ClCompile Include="..\..\..\Source\VirtualMachine\Input.cpp" />
     <ClCompile Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.cpp" />
@@ -140,7 +143,9 @@
     <ClInclude Include="..\..\..\Source\OperationSystem\Process.h" />
     <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessExternalMemory.h" />
     <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessIdle.h" />
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessInput.h" />
     <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessManager.h" />
+    <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessOutput.h" />
     <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessProgram.h" />
     <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessStartStop.h" />
     <ClInclude Include="..\..\..\Source\OperationSystem\Processes\ProcessSystem.h" />
@@ -151,6 +156,7 @@
     <ClInclude Include="..\..\..\Source\OperationSystem\ResourcePlanner.h" />
     <ClInclude Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.h" />
     <ClInclude Include="..\..\..\Source\VirtualMachine\Code.h" />
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Context.h" />
     <ClInclude Include="..\..\..\Source\VirtualMachine\ExternalMemory.h" />
     <ClInclude Include="..\..\..\Source\VirtualMachine\Helper.h" />
     <ClInclude Include="..\..\..\Source\VirtualMachine\IInteruptHandler.h" />

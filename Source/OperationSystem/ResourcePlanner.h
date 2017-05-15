@@ -23,10 +23,8 @@ public:
 	ResourcePlanner(OperationSystem* operationSystem);
 
 	Resource* CreateResourceMemory(ProcessStartStop* parent, uint32_t pageCount, uint32_t pageSize);
-	Resource* CreateResourceOSStop(ProcessStartStop* parent);
-	Resource* CreateResourceExternalMemoryWait(ProcessStartStop* parent);
-	Resource* CreateResourceExternalMemoryRespond(ProcessStartStop* parent);
-	Resource* CreateResourceProcessManagerWait(ProcessStartStop* parent);
+	Resource* CreateResourceRequest(ProcessStartStop* parent, const char* name);
+	Resource* CreateResourceRespond(ProcessStartStop* parent, const char* name);
 
 	void DestroyResource(Resource* resource);
 

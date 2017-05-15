@@ -60,12 +60,15 @@ bool Process::ExecuteCallback()
 
 void Process::ExecuteWhenRunning(ProcessKernelInstructions callback)
 { 
-	if (state == kProcessStateRunning)
+	assert(processor != nullptr);
+	callback(processor);
+
+	/*if (state == kProcessStateRunning)
 	{
 		assert(processor != nullptr);
 		callback(processor);
 		return;
 	}
 
-	queuedKernelInstructions.push_back(callback);
+	queuedKernelInstructions.push_back(callback);*/
 }

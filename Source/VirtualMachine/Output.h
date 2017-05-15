@@ -4,7 +4,7 @@
 #include <vector>
 #include <stdio.h>
 
-class CentralProcessingUnit;
+class CentralProcessingUnitCore;
 struct Registers;
 
 class Output
@@ -12,5 +12,5 @@ class Output
 public:
 	Output();
 
-	void PrintToScreen(CentralProcessingUnit* core, uint32_t address);
+	void PrintToScreen(CentralProcessingUnitCore* core, uint32_t address);
 };

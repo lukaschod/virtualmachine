@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VirtualMachine\Code.h>
+#include <functional>
 
 class CentralProcessingUnitCore;
 

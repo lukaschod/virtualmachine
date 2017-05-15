@@ -18,8 +18,13 @@ void ProcessSystem::CallbackRunning(CentralProcessingUnitCore* core)
 	if (queuedKernelInstructions.size() != 0)
 		return;
 
-	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
+	queuedKernelInstructions.push_back([this](CentralProcessingUnitCore* core)
 	{
 		Execute(core);
 	});
+
+	/*ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
+	{
+		Execute(core);
+	});*/
 }

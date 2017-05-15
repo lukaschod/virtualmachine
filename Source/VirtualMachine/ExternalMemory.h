@@ -4,9 +4,11 @@
 #include <vector>
 #include <stdio.h>
 
-class CentralProcessingUnit;
+class CentralProcessingUnitCore;
 class MemoryManagmentUnit;
 struct Registers;
+
+#define MAX_FILEPATH_SIZE 128
 
 enum FileAccessFlag
 {
@@ -26,12 +28,12 @@ struct FileHeader
 class ExternalMemory
 {
 public:
-	ExternalMemory(uint32_t maximumFileCount);
+	ExternalMemory(const char* globalPath, uint32_t maximumFileCount);
 
-	uint32_t Open(CentralProcessingUnit* core, uint32_t filePathAddress, FileAccessFlag accessFlag);
-	void Close(CentralProcessingUnit* core, uint32_t fileHandle);
-	size_t Read(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size = sizeof(uint32_t));
-	size_t Write(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size = sizeof(uint32_t));
+	uint32_t Open(CentralProcessingUnitCore* core, uint32_t filePathAddress, FileAccessFlag accessFlag);
+	void Close(CentralProcessingUnitCore* core, uint32_t fileHandle);
+	size_t Read(CentralProcessingUnitCore* core, uint32_t fileHandle, uint32_t address, size_t size = sizeof(uint32_t));
+	size_t Write(CentralProcessingUnitCore* core, uint32_t fileHandle, uint32_t address, size_t size = sizeof(uint32_t));
 
 private:
 	FileHeader* TryResolveFileHandle(uint32_t fileHandle);
@@ -39,4 +41,6 @@ private:
 
 private:
 	std::vector<FileHeader> files;
+	char globalFilePath[MAX_FILEPATH_SIZE];
+	size_t globalPathSize;
 };

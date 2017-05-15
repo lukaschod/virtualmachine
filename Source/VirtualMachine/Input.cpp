@@ -7,7 +7,7 @@ Input::Input()
 {
 }
 
-void Input::ReadUntilEnter(CentralProcessingUnit* core, uint32_t address)
+void Input::ReadUntilEnter(CentralProcessingUnitCore* core, uint32_t address)
 {
 	auto memory = core->Get_memory();
 	// TODO: fix this inefficient shit

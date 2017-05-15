@@ -10,27 +10,27 @@ ProcessUser::ProcessUser(const char* name, Process* parent, ProcessPriority prio
 	virtualMachine(virtualMachine)
 {
 	context = virtualMachine->Get_context();
-	context.registerUserMode = false;
+	/*context.registerUserMode = false;
 	
 	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
 	{
 		this->virtualMachine->WriteDataSegment(core);
-
-		ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
-		{
-			this->virtualMachine->WriteCodeSegment(core);
-
-			ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
-			{
-				this->virtualMachine->WriteStackSegment(core);
-
-				ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
-				{
-					core->Get_context()->registerUserMode = true;
-				});
-			});
-		});
 	});
+
+	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
+	{
+		this->virtualMachine->WriteCodeSegment(core);
+	});
+
+	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
+	{
+		this->virtualMachine->WriteStackSegment(core);
+	});
+
+	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
+	{
+		core->Get_context()->registerUserMode = true;
+	});*/
 }
 
 ProcessUser::~ProcessUser()

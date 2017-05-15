@@ -7,11 +7,11 @@
 #include "Input.h"
 #include "Output.h"
 
-RealMachine::RealMachine()
+RealMachine::RealMachine(RealMachineCreateOptions& options)
 {
 	isStarted = false;
-	ram = new RandomAccessMemory(40, 128);
-	externalMemory = new ExternalMemory(20);
+	ram = new RandomAccessMemory(options.pageCount, options.pageSize);
+	externalMemory = new ExternalMemory(options.pathToMachine, options.maximumOpenedFileCount);
 	input = new Input();
 	output = new Output();
 	cpu = new CentralProcessingUnit(ram, externalMemory, input, output);

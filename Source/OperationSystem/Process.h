@@ -12,6 +12,7 @@ class ProcessPlanner;
 class ResourcePlanner;
 class Resource;
 class ResourceElement;
+class Context;
 
 enum ProcessState
 {
@@ -61,5 +62,5 @@ protected:
 	AUTOMATED_PROPERTY_GETADR(std::vector<Process*>, children);
 	AUTOMATED_PROPERTY_GETADR(std::vector<Resource*>, createdResources);
 	AUTOMATED_PROPERTY_GETADR(std::vector<ResourceElement*>, ownedResourceElements);
-	
+	AUTOMATED_PROPERTY_GETSET(Context*, physicalContext);
 };

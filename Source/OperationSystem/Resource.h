@@ -23,12 +23,13 @@ struct ResourceRequest
 	ResourceRequest(uint32_t count) { this->count = count; requestIndex = 0; }
 };
 
+// TODO: Make resources generic
 class ResourceElement
 {
 public:
 	Process* receiver;
 	Process* sender;
-	uint32_t index;
+	uint32_t indexMode;
 	uint32_t index2;
 	uint32_t index3;
 	uint32_t index4;

@@ -27,12 +27,12 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
 	{
 		auto request = GetRequestedResourceElement();
-		auto mode = request->index;
+		auto mode = request->indexMode;
 		auto sender = request->sender;
 		auto pathToFileAddress = request->index2;
 		auto fileHandle = request->index3;
 
-		resourcePlanner->DestroyResourceElement(request, this);
+		core->Get_context()->registerPS = sender->Get_context()->registerPS;
 
 		switch (mode)
 		{
@@ -52,11 +52,11 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 				auto fileHandle = GetRequestedResourceElementReturn();
 
 				reservedMemoryUsed = 0;
+				core->Get_context()->registerPS = 0;
 				startStop->Get_processExternalMemory()->ReadFile(core, fileHandle, reservedMemoryRange.address, reservedMemoryRange.size);
 				ExecuteWhenRunning([this, sender, fileHandle](CentralProcessingUnitCore* core)
 				{
-					auto size = GetRequestedResourceElementReturn();
-					size += reservedMemoryUsed;
+					reservedMemoryUsed += GetRequestedResourceElementReturn();
 
 					startStop->Get_processExternalMemory()->CloseFile(core, fileHandle);
 					ExecuteWhenRunning([this, sender](CentralProcessingUnitCore* core)
@@ -75,18 +75,18 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 					});
 				});
 			});
-			return;
+			break;
 		}
 
-		case 3:
+		case 1:
 		{
 			auto program = HandleToProgram(fileHandle);
 			if (!program->SaveToMemory(core, reservedMemoryRange.address))
 			{
 				assert(false);
 				resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
-					this, sender, kResourceRespondError, 3);
-				return;
+					this, sender, kResourceRespondError, 1);
+				break;
 			}
 
 			reservedMemoryUsed = program->GetTotalSize();
@@ -97,7 +97,7 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
                 if (GetRequestedResourceElementError() != kResourceRespondSuccess)
                 {
                     resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
-                        this, sender, kResourceRespondError, 0);
+                        this, sender, kResourceRespondError, 1);
                     return;
                 }
 
@@ -110,30 +110,76 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 					ExecuteWhenRunning([this, sender](CentralProcessingUnitCore* core)
 					{
 						resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
-							this, sender, kResourceRespondSuccess, 3);
+							this, sender, kResourceRespondSuccess, 1);
 					});
 				});
 			});
-			return;
+			break;
 		}
 
-		case 1:
+		case 2:
 		{
 			auto program = HandleToProgram(fileHandle);
 			if (program == nullptr)
 			{
 				resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
-					this, sender, kResourceRespondError, 1);
-				return;
+					this, sender, kResourceRespondError, 2);
+				break;
 			}
 
 			delete program;
 			resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
-				this, sender, kResourceRespondSuccess, 1);
-			return;
+				this, sender, kResourceRespondSuccess, 2);
+			break;
+		}
+
+		case 3:
+		{
+			auto pathToSource = request->index2;
+			auto pathToOutput = request->index3;
+			startStop->Get_processExternalMemory()->OpenFile(core, pathToSource, kFileAccessReadBit);
+
+			ExecuteWhenRunning([this, sender](CentralProcessingUnitCore* core)
+			{
+				if (GetRequestedResourceElementError() != kResourceRespondSuccess)
+				{
+					resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
+						this, sender, kResourceRespondError, 3);
+					return;
+				}
+
+				auto fileHandle = GetRequestedResourceElementReturn();
+
+				reservedMemoryUsed = 0;
+				core->Get_context()->registerPS = 0;
+				startStop->Get_processExternalMemory()->ReadFile(core, fileHandle, reservedMemoryRange.address, reservedMemoryRange.size);
+				ExecuteWhenRunning([this, sender, fileHandle](CentralProcessingUnitCore* core)
+				{
+					reservedMemoryUsed += GetRequestedResourceElementReturn();
+
+					startStop->Get_processExternalMemory()->CloseFile(core, fileHandle);
+					ExecuteWhenRunning([this, sender](CentralProcessingUnitCore* core)
+					{
+						auto program = new Program();
+						if (!program->CompileFromMemoryAndCreate(core, reservedMemoryRange.address, reservedMemoryUsed))
+						{
+							assert(false);
+							resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
+								this, sender, kResourceRespondError, 3);
+							return;
+						}
+
+						resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
+							this, sender, kResourceRespondSuccess, 3, ProgramToHandle(program));
+					});
+				});
+			});
+			break;
 		}
 
 		}
+
+		resourcePlanner->DestroyResourceElement(request, this);
 	});
 }
 
@@ -147,66 +193,50 @@ bool ProcessProgram::MakeSureReservedMemoryIsAllocated()
 	auto requestMemoryPageCount = 20;
 	memoryRequest.count = requestMemoryPageCount;
 	memoryRequest.requester = this;
-	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_memory(), memoryRequest);
+	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceMemory(), memoryRequest);
 
 	ExecuteWhenRunning([this, requestMemoryPageCount](CentralProcessingUnitCore* core)
 	{
 		auto element = Get_ownedResourceElements()[Get_ownedResourceElements().size() - requestMemoryPageCount];
 		reservedMemoryRange.address = element->indexReturn;
-		reservedMemoryRange.size = 20 * core->Get_ram()->Get_pageSize();
+		reservedMemoryRange.size = requestMemoryPageCount * core->Get_ram()->Get_pageSize();
 		isReservedRangeValid = true;
 	});
 	return isReservedRangeValid;
 }
 
-void ProcessProgram::CreateProgramFromFile(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, ProcessKernelInstructions callback)
-{
-	auto process = (Process*) core->Get_process();
-	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRequest(), process);
-	request->index = 0;
-	request->index2 = pathToFileAddress;
-	resourcePlanner->ProvideResourceElement(request, process);
-
-	auto wait = ResourceRequest();
-	wait.requestIndex = process->Get_fid();
-	wait.requester = process;
-	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(), wait);
-
-	if (callback != nullptr)
+#define AUTOMATED_PROGRAM_REQUEST_WAIT(IndexMode, Index2, Index3) \
+	auto process = (Process*) core->Get_process(); \
+	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRequest(), process); \
+	request->indexMode = IndexMode; \
+	request->index2 = Index2; \
+	request->index3 = Index3; \
+	resourcePlanner->ProvideResourceElement(request, process); \
+	\
+	auto wait = ResourceRequest(); \
+	wait.requestIndex = process->Get_fid(); \
+	wait.requester = process; \
+	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(), wait); \
+	\
+	if (callback != nullptr) \
 		process->ExecuteWhenRunning(callback);
+
+void ProcessProgram::LoadProgramFromFile(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, ProcessKernelInstructions callback)
+{
+	AUTOMATED_PROGRAM_REQUEST_WAIT(0, pathToFileAddress, 0);
 }
 
 void ProcessProgram::SaveProgramToFile(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, uint32_t programHandle, ProcessKernelInstructions callback)
 {
-	auto process = (Process*) core->Get_process();
-	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRequest(), process);
-	request->index = 3;
-	request->index2 = pathToFileAddress;
-	request->index3 = programHandle;
-	resourcePlanner->ProvideResourceElement(request, process);
-
-	auto wait = ResourceRequest();
-	wait.requestIndex = process->Get_fid();
-	wait.requester = process;
-	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(), wait);
-
-	if (callback != nullptr)
-		process->ExecuteWhenRunning(callback);
+	AUTOMATED_PROGRAM_REQUEST_WAIT(1, pathToFileAddress, programHandle);
 }
 
 void ProcessProgram::DestroyProgram(CentralProcessingUnitCore* core, uint32_t programHandle, ProcessKernelInstructions callback)
 {
-	auto process = (Process*) core->Get_process();
-	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRequest(), process);
-	request->index = 2;
-	request->index2 = programHandle;
-	resourcePlanner->ProvideResourceElement(request, process);
+	AUTOMATED_PROGRAM_REQUEST_WAIT(2, programHandle, 0);
+}
 
-	auto wait = ResourceRequest();
-	wait.requestIndex = process->Get_fid();
-	wait.requester = process;
-	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(), wait);
-
-	if (callback != nullptr)
-		process->ExecuteWhenRunning(callback);
+void ProcessProgram::CreateProgramFromSource(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, ProcessKernelInstructions callback)
+{
+	AUTOMATED_PROGRAM_REQUEST_WAIT(3, pathToFileAddress, 0);
 }

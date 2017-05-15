@@ -23,12 +23,8 @@ private:
 class OperationSystem : public IInteruptHandler
 {
 public:
-	OperationSystem();
+	OperationSystem(RealMachine* realMachine);
 	~OperationSystem();
-
-	void Start();
-	void Stop();
-	void WaitTillFinishes();
 
 	virtual bool HandleInterupt(CentralProcessingUnitCore* core);
 	virtual bool ShouldSkipNextInstruction(CentralProcessingUnitCore* core);

@@ -4,7 +4,7 @@
 #include "Helper.h"
 #include <string>
 
-class CentralProcessingUnit;
+class CentralProcessingUnitCore;
 class RandomAccessMemory;
 
 struct PageTable
@@ -25,19 +25,19 @@ class MemoryManagmentUnit : public IMemory
 public:
 	MemoryManagmentUnit(RandomAccessMemory* ram);
 
-	virtual void WriteFromRealMemory(CentralProcessingUnit* core, void* srcPointer, uint32_t dstAddress, size_t size = sizeof(uint32_t));
-	virtual void ReadToRealMemory(CentralProcessingUnit* core, uint32_t srcAddress, void* dstPointer, size_t size = sizeof(uint32_t));
-	virtual void Write(CentralProcessingUnit* core, uint32_t srcAddress, uint32_t dstAddress, size_t size = sizeof(uint32_t));
-	virtual void Read(CentralProcessingUnit* core, uint32_t srcAddress, uint32_t dstAddress, size_t size = sizeof(uint32_t));
-	virtual PointerRange AddressToPointerRange(CentralProcessingUnit* core, uint32_t address, size_t size = sizeof(uint32_t));
-	virtual uint32_t AllocateMemory(CentralProcessingUnit* core, size_t size = sizeof(uint32_t));
+	virtual void WriteFromRealMemory(CentralProcessingUnitCore* core, void* srcPointer, uint32_t dstAddress, size_t size = sizeof(uint32_t));
+	virtual void ReadToRealMemory(CentralProcessingUnitCore* core, uint32_t srcAddress, void* dstPointer, size_t size = sizeof(uint32_t));
+	virtual void Write(CentralProcessingUnitCore* core, uint32_t srcAddress, uint32_t dstAddress, size_t size = sizeof(uint32_t));
+	virtual void Read(CentralProcessingUnitCore* core, uint32_t srcAddress, uint32_t dstAddress, size_t size = sizeof(uint32_t));
+	virtual PointerRange AddressToPointerRange(CentralProcessingUnitCore* core, uint32_t address, size_t size = sizeof(uint32_t));
+	virtual uint32_t AllocateMemory(CentralProcessingUnitCore* core, size_t size = sizeof(uint32_t));
 
-	void AllocatePage(CentralProcessingUnit* core, uint32_t pageIndex, uint32_t physicalAddress);
+	void AllocatePage(CentralProcessingUnitCore* core, uint32_t pageIndex, uint32_t physicalAddress);
 
-	std::string ToString(CentralProcessingUnit* core);
+	std::string ToString(CentralProcessingUnitCore* core);
 
 private:
-	AddressRange VirtualToPhysicalAddress(CentralProcessingUnit* core, uint32_t virtualAddress, size_t size);
+	AddressRange VirtualToPhysicalAddress(CentralProcessingUnitCore* core, uint32_t virtualAddress, size_t size);
 
 private:
 	RandomAccessMemory* ram;

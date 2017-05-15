@@ -8,24 +8,24 @@ class CentralProcessingUnitCore;
 
 enum InstructionCode
 {
-	ADD,
-	SUB,
-	MUL,
-	DIV,
-	AND,
-	OR,
-	CMP,
+	kInstructionCodeADD,
+	kInstructionCodeSUB,
+	kInstructionCodeMUL,
+	kInstructionCodeDIV,
+	kInstructionCodeAND,
+	kInstructionCodeOR,
+	kInstructionCodeCMP,
 
-	LDC,
-	LDI,
-	STI,
+	kInstructionCodeLDC,
+	kInstructionCodeLDI,
+	kInstructionCodeSTI,
 
-	INT,
-	HALT,
-	JMP,
-	JMPE,
-	JMPL,
-	JMPEL
+	kInstructionCodeINT,
+	kInstructionCodeHALT,
+	kInstructionCodeJMP,
+	kInstructionCodeJMPE,
+	kInstructionCodeJMPL,
+	kInstructionCodeJMPEL
 };
 
 enum InteruptCode
@@ -43,6 +43,17 @@ enum InteruptCode
 	kInteruptCodeFailureMemoryException,
 	kInteruptCodeFailureGeneral,
 	kInteruptCodeFailurePage,
+
+	kInteruptCodeAbort,
+
+	kInteruptCodeCreateProcess,
+
+	kInteruptCodeCPUStart,
+
+	kInteruptCreateProgramFromSource,
+	kInteruptLoadProgramFromFile,
+	kInteruptSaveProgramToFile,
+	kInteruptDestroyProgram,
 };
 
 #define MAX_LABEL_SIZE 30
@@ -60,6 +71,7 @@ public:
 	Program();
 
 	bool CreateFromText(const char* source);
+	bool CompileFromMemoryAndCreate(CentralProcessingUnitCore* core, uint32_t address, uint32_t size);
 	bool CreateFromMemory(CentralProcessingUnitCore* core, uint32_t address, uint32_t size);
 	bool SaveToMemory(CentralProcessingUnitCore* core, uint32_t address);
 
@@ -93,4 +105,12 @@ private:
 	std::vector<uint32_t> codeSegment;
 	std::vector<uint8_t> dataSegment;
 	std::vector<std::pair<char[MAX_LABEL_SIZE], uint32_t>> labelToAddress;
+};
+
+class Compiler
+{
+public:
+	Compiler();
+
+	Program* CreateFromSource(CentralProcessingUnitCore* core, uint32_t address, uint32_t size);
 };

@@ -11,6 +11,8 @@
 #include <OperationSystem\Processes\ProcessManager.h>
 #include <OperationSystem\Processes\ProcessUser.h>
 #include <OperationSystem\Processes\ProcessProgram.h>
+#include <OperationSystem\Processes\ProcessOutput.h>
+#include <OperationSystem\Processes\ProcessInput.h>
 
 ProcessPlanner::ProcessPlanner(OperationSystem* operationSystem) :
 	operationSystem(operationSystem) {}
@@ -66,6 +68,20 @@ ProcessProgram* ProcessPlanner::CreateProcessProgram(ProcessStartStop* parent)
 	return process;
 }
 
+ProcessInput* ProcessPlanner::CreateProcessInput(ProcessStartStop* parent)
+{
+	auto process = new ProcessInput(parent, operationSystem);
+	AddProcess(process, parent);
+	return process;
+}
+
+ProcessOutput* ProcessPlanner::CreateProcessOutput(ProcessStartStop* parent)
+{
+	auto process = new ProcessOutput(parent, operationSystem);
+	AddProcess(process, parent);
+	return process;
+}
+
 void ProcessPlanner::AddProcess(Process* process, Process* parent)
 {
 	if (parent != nullptr)
@@ -111,6 +127,11 @@ void ProcessPlanner::KillProcessRecursive(Process* process)
 		VECTOR_REMOVE_ITEM(process->Get_parent()->Get_children(), process);
 
 	VECTOR_REMOVE_ITEM(processes, process);
+
+	if (process->Get_physicalContext() != nullptr)
+	{
+		delete process->Get_physicalContext();
+	}
 
 	/*auto& ownedResourceElements = process->Get_ownedResourceElements();
 	while (ownedResourceElements.size() != 0)
@@ -169,6 +190,7 @@ void ProcessPlanner::SwitchContext(CentralProcessingUnitCore* core)
 	if (readyProcesses.size() == 0)
 	{
 		core->SetInterupt(kInteruptCodeHalt);
+		core->Get_physicalContext()->Apply();
 		return;
 	}
 
@@ -178,6 +200,16 @@ void ProcessPlanner::SwitchContext(CentralProcessingUnitCore* core)
 	// Set the process with highest priority
 	auto process = readyProcesses.front();
 	RunningProcess(process, core);
+
+	if (process->Get_physicalContext() == nullptr)
+	{
+		process->Set_physicalContext(new Context([](void* data) 
+		{
+			auto core = (CentralProcessingUnitCore*) data;
+			core->Run();
+		}, core));
+	}
+	process->Get_physicalContext()->Apply();
 }
 
 void ProcessPlanner::ReadyProcess(Process* process, CentralProcessingUnitCore* core)
@@ -192,7 +224,7 @@ void ProcessPlanner::ReadyProcess(Process* process, CentralProcessingUnitCore* c
 	VECTOR_REMOVE_ITEM(runningProcesses, process);
 	VECTOR_ADD_ITEM(readyProcesses, process);
 
-	process->CallbackRunning(core);
+	process->CallbackReady(core);
 }
 
 void ProcessPlanner::RunningProcess(Process* process, CentralProcessingUnitCore* core)
@@ -209,7 +241,7 @@ void ProcessPlanner::RunningProcess(Process* process, CentralProcessingUnitCore*
 	VECTOR_REMOVE_ITEM(readyProcesses, process);
 	VECTOR_ADD_ITEM(runningProcesses, process);
 
-	process->CallbackReady(core);
+	process->CallbackRunning(core);
 }
 
 void ProcessPlanner::BlockProcess(Process* process)
