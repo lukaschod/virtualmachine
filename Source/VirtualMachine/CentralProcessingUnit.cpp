@@ -31,7 +31,7 @@ CentralProcessingUnit::CentralProcessingUnit(RandomAccessMemory* ram, ExternalMe
 	isStarted = false;
 
 	process = nullptr;
-	internalBuiltInDebug = true;
+	internalBuiltInDebug = false;
 }
 
 void CentralProcessingUnit::Start()
@@ -64,7 +64,7 @@ void CentralProcessingUnit::Run()
 			{
 				START_SUPERVISOR_MODE
 
-				printf("%s\n", ram->ToString().c_str());
+				//printf("%s\n", ram->ToString().c_str());
 				printf("%s\n", mmu->ToString((CentralProcessingUnitCore*)this).c_str());
 				printf("%s\n", ToStringStackSegment().c_str());
 				printf("%s\n", ToStringDataSegment().c_str());
@@ -98,8 +98,6 @@ void CentralProcessingUnit::Stop()
 
 void CentralProcessingUnit::ExecuteInstruction()
 {
-	context.registerLastIC = context.registerIC; // TODO: maybe find a better way to habdle pagefailure instruction rollback
-
 	auto instructionCode = GetNextInstruction();
 	switch (instructionCode)
 	{
@@ -224,9 +222,79 @@ void CentralProcessingUnit::ExecuteInstruction()
 	}
 
 	case kInstructionCodeHALT:
+	{
 		context.registerINT = kInteruptCodeHalt;
 		context.registerC |= kFlagRegisterInterruptBit;
 		return;
+	}
+
+	case kInstructionCodeCALL:
+	{
+		auto address = GetNextInstruction();
+		auto argumentCount = GetNextInstruction();
+		auto localCount = GetNextInstruction();
+		auto argumentsAddress = context.registerSC - argumentCount * sizeof(uint32_t);
+		ExecuteInstructionPush(context.registerIC);
+		ExecuteInstructionPush(context.registerSC);
+		ExecuteInstructionPush(context.registerARG);
+		ExecuteInstructionPush(context.registerLOC);
+		context.registerARG = argumentsAddress;
+		context.registerLOC = context.registerSC;
+		context.registerSC += argumentCount * sizeof(uint32_t);
+		context.registerIC = address;
+		return;
+	}
+
+	case kInstructionCodeRET:
+	{
+		context.registerSC = context.registerLOC;
+		context.registerLOC = ExecuteInstructionPop();
+		context.registerARG = ExecuteInstructionPop();
+		context.registerSC = ExecuteInstructionPop();
+		context.registerIC = ExecuteInstructionPop();
+		return;
+	}
+
+	case kInstructionCodeSTACK:
+	{
+		auto size = GetNextInstruction();
+		context.registerSC += size;
+		return;
+	}
+
+	case kInstructionCodeLDLOC:
+	{
+		auto index = GetNextInstruction();
+		uint32_t value;
+		mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, context.registerLOC + index * sizeof(uint32_t), &value);
+		ExecuteInstructionPush(value);
+		return;
+	}
+
+	case kInstructionCodeSTLOC:
+	{
+		auto index = GetNextInstruction();
+		auto value = ExecuteInstructionPop();
+		mmu->WriteFromRealMemory((CentralProcessingUnitCore*)this, &value, context.registerLOC + index * sizeof(uint32_t));
+		return;
+	}
+
+	case kInstructionCodeLDARG:
+	{
+		auto index = GetNextInstruction();
+		uint32_t value;
+		mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, context.registerARG + index * sizeof(uint32_t), &value);
+		ExecuteInstructionPush(value);
+		return;
+	}
+
+	case kInstructionCodeSTARG:
+	{
+		auto index = GetNextInstruction();
+		auto value = ExecuteInstructionPop();
+		mmu->WriteFromRealMemory((CentralProcessingUnitCore*)this, &value, context.registerARG + index * sizeof(uint32_t));
+		return;
+	}
 
 	default:
 		break;
@@ -455,11 +523,6 @@ bool CentralProcessingUnit::HandleInterupts()
 	if (!context.IsInteruptHappened())
 		return false;
 
-	if (context.IsUserMode())
-		return true;
-
-	// On supervisor code we need to handle interupts immediatly
-	// Because supervisor code is not executed here by instruction
 	ExecuteInstructionTest();
 	return true;
 }

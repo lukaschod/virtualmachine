@@ -57,35 +57,38 @@ bool Program::SaveToMemory(CentralProcessingUnitCore* core, uint32_t address)
 	return true;
 }
 
-bool Program::CreateFromText(const char* source)
+bool Program::CreateFromText(const char* source, size_t size)
 {
+	if (!CompileData(source, size))
+		return false;
+
 	// Prebakes the labels
-	if (!CompileInternal(source)) // TODO: optimize
+	if (!CompileInternal(source, size)) // TODO: optimize
 		return false;
 	codeSegment.clear();
-	dataSegment.clear();
 
-	if (!CompileInternal(source))
+	if (!CompileInternal(source, size))
 		return false;
 
 	header.codeSegmentSize = sizeof(uint32_t) * codeSegment.size();
 	header.dataSegmentSize = sizeof(uint8_t) * dataSegment.size();
-	header.stackSegmentSize = sizeof(uint32_t) * 10;
+	header.stackSegmentSize = sizeof(uint32_t) * 30;
 
 	return true;
 }
 
-bool Program::CompileFromMemoryAndCreate(CentralProcessingUnitCore* core, uint32_t address, uint32_t size)
+bool Program::CompileFromMemoryAndCreate(CentralProcessingUnitCore* core, uint32_t address, size_t size)
 {
 	auto memory = core->Get_memory();
 	auto range = memory->AddressToPointerRange(core, address, size);
-	return CreateFromText((const char*)range.pointer);
+	return CreateFromText((const char*)range.pointer, range.size);
 }
 
-bool Program::CompileInternal(const char* source)
+bool Program::CompileData(const char* source, size_t size)
 {
+	const char* sourceEnd = source + size;
 	size_t instructionSize = 4;
-	while (true)
+	while (source != sourceEnd)
 	{
 		// Read Heap
 		if (MovePointerIfSame(source, "DATA"))
@@ -104,9 +107,9 @@ bool Program::CompileInternal(const char* source)
 					if (MovePointerIfReadedStringSymbol(source))
 						break;
 
-					uint8_t value;
-					if (sscanf_s(source, "%c", &value) != 1)
-						return false;
+					uint8_t value = *source;
+					//if (sscanf_s(source, "%c", &value) != 1)
+					//	return false;
 					source++;
 
 					dataSegment.push_back(value);
@@ -120,7 +123,7 @@ bool Program::CompileInternal(const char* source)
 			while (true)
 			{
 				uint32_t value;
-				if (!MovePointerIfReadedUint32(source, value))
+				if (!MovePointerIfReadedUint32OrLabel(source, value))
 					return false;
 
 				dataSegment.push_back(value);
@@ -131,6 +134,105 @@ bool Program::CompileInternal(const char* source)
 				if (!IsNextSeperator(source))
 					break;
 			}
+
+			continue;
+		}
+
+		source++;
+		continue;
+	}
+
+	return true;
+}
+
+bool Program::CompileInternal(const char* source, size_t size)
+{
+	const char* sourceEnd = source + size;
+	size_t instructionSize = 4;
+	while (source != sourceEnd)
+	{
+		if (MovePointerIfSame(source, "PROC"))
+		{
+			char label[MAX_LABEL_SIZE];
+			if (!MovePointerIfReadedLabel(source, label))
+				return false;
+
+			UpdateLabelAddress(label, GetDataSegmentSize() + GetCodeSegmentSize());
+
+			continue;
+		}
+
+		if (MovePointerIfSame(source, "LDARG."))
+		{
+			uint32_t index;
+			if (!MovePointerIfReadedUint32(source, index))
+				return false;
+
+			codeSegment.push_back(kInstructionCodeLDARG);
+			codeSegment.push_back(index);
+			continue;
+		}
+
+		if (MovePointerIfSame(source, "STARG."))
+		{
+			uint32_t index;
+			if (!MovePointerIfReadedUint32(source, index))
+				return false;
+
+			codeSegment.push_back(kInstructionCodeSTARG);
+			codeSegment.push_back(index);
+			continue;
+		}
+
+		if (MovePointerIfSame(source, "LDLOC."))
+		{
+			uint32_t index;
+			if (!MovePointerIfReadedUint32(source, index))
+				return false;
+
+			codeSegment.push_back(kInstructionCodeLDLOC);
+			codeSegment.push_back(index);
+			continue;
+		}
+
+		if (MovePointerIfSame(source, "STLOC."))
+		{
+			uint32_t index;
+			if (!MovePointerIfReadedUint32(source, index))
+				return false;
+
+			codeSegment.push_back(kInstructionCodeSTLOC);
+			codeSegment.push_back(index);
+			continue;
+		}
+
+		if (MovePointerIfSame(source, "RET"))
+		{
+			codeSegment.push_back(kInstructionCodeRET);
+			continue;
+		}
+
+		if (MovePointerIfSame(source, "CALL"))
+		{
+			char label[MAX_LABEL_SIZE];
+			if (!MovePointerIfReadedLabel(source, label))
+				break;
+
+			uint32_t address;
+			LabelToAddress(label, address);
+
+			uint32_t argumentCount;
+			if (!MovePointerIfReadedUint32(source, argumentCount))
+				return false;
+
+			uint32_t localCount;
+			if (!MovePointerIfReadedUint32(source, localCount))
+				return false;
+
+			codeSegment.push_back(kInstructionCodeCALL);
+			codeSegment.push_back(address);
+			codeSegment.push_back(argumentCount);
+			codeSegment.push_back(localCount);
 
 			continue;
 		}
@@ -158,7 +260,7 @@ bool Program::CompileInternal(const char* source)
 		if (MovePointerIfSame(source, "HALT"))
 		{
 			codeSegment.push_back(kInstructionCodeHALT);
-			return true;
+			continue;
 		}
 
 		source++;
@@ -220,7 +322,7 @@ bool Program::CompileDataManipulationInstructions(const char*& source)
 	if (MovePointerIfSame(source, "LDC"))
 	{
 		uint32_t value;
-		if (MovePointerIfReadedUint32(source, value))
+		if (MovePointerIfReadedUint32OrLabel(source, value))
 		{
 			codeSegment.push_back(kInstructionCodeLDC);
 			codeSegment.push_back(value);
@@ -233,7 +335,7 @@ bool Program::CompileDataManipulationInstructions(const char*& source)
 	if (MovePointerIfSame(source, "LDI"))
 	{
 		uint32_t value;
-		if (MovePointerIfReadedUint32(source, value))
+		if (MovePointerIfReadedUint32OrLabel(source, value))
 		{
 			codeSegment.push_back(kInstructionCodeLDI);
 			codeSegment.push_back(value);
@@ -246,7 +348,7 @@ bool Program::CompileDataManipulationInstructions(const char*& source)
 	if (MovePointerIfSame(source, "STI"))
 	{
 		uint32_t value;
-		if (MovePointerIfReadedUint32(source, value))
+		if (MovePointerIfReadedUint32OrLabel(source, value))
 		{
 			codeSegment.push_back(kInstructionCodeSTI);
 			codeSegment.push_back(value);
@@ -264,7 +366,7 @@ bool Program::CompileInteruptInstructions(const char*& source)
 	if (MovePointerIfSame(source, "INT"))
 	{
 		uint32_t interuptId;
-		if (!MovePointerIfReadedUint32(source, interuptId))
+		if (!MovePointerIfReadedUint32OrLabel(source, interuptId))
 			return false;
 
 		codeSegment.push_back(kInstructionCodeINT);
@@ -352,7 +454,7 @@ bool Program::MovePointerIfReadedStringSymbol(const char*& source)
 	auto currentSourcePointer = source;
 	while (true)
 	{
-		if (*currentSourcePointer == '&')
+		if (*currentSourcePointer == '"')
 		{
 			source = currentSourcePointer + 1;
 			return true;
@@ -371,6 +473,8 @@ bool Program::MovePointerIfReadedLabel(const char*& source, char* label)
 	auto currentSourcePointer = source;
 	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n')
 	{
+		if (*currentSourcePointer == '\n')
+			return false;
 		currentSourcePointer++;
 	}
 	auto labelStartPointer = currentSourcePointer;
@@ -398,7 +502,7 @@ bool Program::MovePointerIfReadedLabel(const char*& source, char* label)
 bool Program::MovePointerIfSame(const char*& source, const char* text)
 {
 	auto currentSourcePointer = source;
-	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n')
+	while (*currentSourcePointer == ' ' || *currentSourcePointer == '	' || *currentSourcePointer == '\n')
 	{
 		currentSourcePointer++;
 	}
@@ -417,6 +521,28 @@ bool Program::MovePointerIfSame(const char*& source, const char* text)
 }
 
 bool Program::MovePointerIfReadedUint32(const char*& source, uint32_t& number)
+{
+	auto currentSourcePointer = source;
+	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n')
+	{
+		currentSourcePointer++;
+	}
+
+	if (sscanf_s(currentSourcePointer, "%d", &number) != 1)
+	{
+		return false;
+	}
+
+	while (*currentSourcePointer != ',' && *currentSourcePointer != ' ' && *currentSourcePointer != '\n')
+	{
+		currentSourcePointer++;
+	}
+
+	source = currentSourcePointer;
+	return true;
+}
+
+bool Program::MovePointerIfReadedUint32OrLabel(const char*& source, uint32_t& number)
 {
 	auto currentSourcePointer = source;
 	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n')

@@ -14,4 +14,7 @@ public:
 
 protected:
 	virtual void Execute(CentralProcessingUnitCore* core);
+
+private:
+	bool isStartProcessCreated;
 };

@@ -27,7 +27,6 @@ struct Registers
 public:
 	// Instruction counter
 	uint32_t registerIC;
-	uint32_t registerLastIC;
 
 	// Stack counter
 	uint32_t registerSC;
@@ -35,6 +34,9 @@ public:
 	// Logic trigger flag
 	uint32_t registerC;
 	InteruptCode registerINT;
+
+	uint32_t registerARG;
+	uint32_t registerLOC;
 
 	uint32_t registerTimer;
 

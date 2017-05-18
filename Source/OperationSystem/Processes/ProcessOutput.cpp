@@ -15,45 +15,41 @@ void ProcessOutput::Execute(CentralProcessingUnitCore* core)
 	startStop = operationSystem->Get_startStopProcess(); // Cache it
 	resourcePlanner->RequestResourceElementAny(startStop->Get_resourceOutputRequest(), this);
 
-	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
+	auto request = GetRequestedResourceElement();
+	auto mode = request->indexMode;
+	auto sender = request->sender;
+
+	core->Get_context()->registerPS = sender->Get_context()->registerPS;
+
+	switch (mode)
 	{
-		auto request = GetRequestedResourceElement();
-		auto mode = request->indexMode;
-		auto sender = request->sender;
+	case 0:
+	{
+		auto address = request->index2;
+		auto size = request->index3; // TODO: Add size
+		auto output = core->Get_output();
+		output->PrintToScreen(core, address);
 
-		core->Get_context()->registerPS = sender->Get_context()->registerPS;
-
-		switch (mode)
+		if (core->IsInteruptHappened())
 		{
-		case 0:
-		{
-			auto address = request->index2;
-			auto size = request->index3; // TODO: Add size
-			auto output = core->Get_output();
-			output->PrintToScreen(core, address);
-
-			// TODO: Add error handle
-			if (false)
-			{
-				resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceOutputRespond(),
-					this, sender, kResourceRespondError, 0);
-				break;
-			}
-
 			resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceOutputRespond(),
-				this, sender, kResourceRespondSuccess, 0);
+				this, sender, kResourceRespondError, 0);
 			break;
 		}
-		}
 
-		resourcePlanner->DestroyResourceElement(request, this);
-	});
+		resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceOutputRespond(),
+			this, sender, kResourceRespondSuccess, 0);
+		break;
+	}
+	}
+
+	resourcePlanner->DestroyResourceElement(request, this);
 }
 
-void ProcessOutput::PrintLine(CentralProcessingUnitCore* core, uint32_t address, uint32_t size, ProcessKernelInstructions callback)
+void ProcessOutput::PrintLine(CentralProcessingUnitCore* core, uint32_t address, uint32_t size)
 {
 	auto process = (Process*) core->Get_process();
-	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProcessManagerRequest(), process);
+	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceOutputRequest(), process);
 	request->indexMode = 0;
 	request->index2 = address;
 	request->index3 = size;
@@ -63,7 +59,4 @@ void ProcessOutput::PrintLine(CentralProcessingUnitCore* core, uint32_t address,
 	wait.requestIndex = process->Get_fid();
 	wait.requester = process;
 	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceOutputRespond(), wait);
-
-	if (callback != nullptr)
-		process->ExecuteWhenRunning(callback);
 }

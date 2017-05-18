@@ -12,7 +12,7 @@ class ProcessOutput : public ProcessSystem
 public:
 	ProcessOutput(ProcessStartStop* parent, OperationSystem* operationSystem);
 
-	void PrintLine(CentralProcessingUnitCore* core, uint32_t address, uint32_t size, ProcessKernelInstructions callback = nullptr);
+	void PrintLine(CentralProcessingUnitCore* core, uint32_t address, uint32_t size);
 
 protected:
 	virtual void Execute(CentralProcessingUnitCore* core);

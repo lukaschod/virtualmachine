@@ -52,20 +52,16 @@ bool OperationSystem::HandleInterupt(CentralProcessingUnitCore* core)
 	case kInteruptCreateProgramFromSource:
 	{
 		auto address = core->ExecuteInstructionPop();
-		startStopProcess->Get_processProgramManager()->CreateProgramFromSource(core, address, [process](CentralProcessingUnitCore* core)
-		{
-			core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-		});
+		startStopProcess->Get_processProgramManager()->CreateProgramFromSource(core, address);
+		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
 		break;
 	}
 
 	case kInteruptLoadProgramFromFile:
 	{
 		auto address = core->ExecuteInstructionPop();
-		startStopProcess->Get_processProgramManager()->LoadProgramFromFile(core, address, [process](CentralProcessingUnitCore* core)
-		{
-			core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-		});
+		startStopProcess->Get_processProgramManager()->LoadProgramFromFile(core, address);
+		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
 		break;
 	}
 
@@ -73,10 +69,8 @@ bool OperationSystem::HandleInterupt(CentralProcessingUnitCore* core)
 	{
 		auto programHandle = core->ExecuteInstructionPop();
 		auto address = core->ExecuteInstructionPop();
-		startStopProcess->Get_processProgramManager()->SaveProgramToFile(core, address, programHandle,[process](CentralProcessingUnitCore* core)
-		{
-			core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-		});
+		startStopProcess->Get_processProgramManager()->SaveProgramToFile(core, address, programHandle);
+		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
 		break;
 	}
 
@@ -101,83 +95,57 @@ bool OperationSystem::HandleInterupt(CentralProcessingUnitCore* core)
 		break;
 	}
 
-    case kInteruptCodeExternalMemoryOpenFile:
-    {
-        auto accessFlag = (FileAccessFlag)core->ExecuteInstructionPop();
-        auto filePathAddress = core->ExecuteInstructionPop();
-        startStopProcess->Get_processExternalMemory()->OpenFile(core, filePathAddress, accessFlag, [process](CentralProcessingUnitCore* core)
-        {
-            core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-        });
+	case kInteruptCodeExternalMemoryOpenFile:
+	{
+		auto accessFlag = (FileAccessFlag) core->ExecuteInstructionPop();
+		auto filePathAddress = core->ExecuteInstructionPop();
+		startStopProcess->Get_processExternalMemory()->OpenFile(core, filePathAddress, accessFlag);
+		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
 		return true;
-    }
+	}
 
-    case kInteruptCodeExternalMemoryCloseFile:
-    {
-        auto fileHandle = core->ExecuteInstructionPop();
-        startStopProcess->Get_processExternalMemory()->CloseFile(core, fileHandle);
+	case kInteruptCodeExternalMemoryCloseFile:
+	{
+		auto fileHandle = core->ExecuteInstructionPop();
+		startStopProcess->Get_processExternalMemory()->CloseFile(core, fileHandle);
 		return true;
-    }
+	}
 
-    case kInteruptCodeExternalMemoryReadFile:
-    {
-        auto size = core->ExecuteInstructionPop();
-        auto address = core->ExecuteInstructionPop();
-        auto fileHandle = core->ExecuteInstructionPop();
-        startStopProcess->Get_processExternalMemory()->ReadFile(core, fileHandle, address, size, [process](CentralProcessingUnitCore* core)
-        {
-            core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-        });
+	case kInteruptCodeExternalMemoryReadFile:
+	{
+		auto size = core->ExecuteInstructionPop();
+		auto address = core->ExecuteInstructionPop();
+		auto fileHandle = core->ExecuteInstructionPop();
+		startStopProcess->Get_processExternalMemory()->ReadFile(core, fileHandle, address, size);
+		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
 		return true;
-    }
+	}
 
-    case kInteruptCodeExternalMemoryWriteFile:
-    {
-        auto size = core->ExecuteInstructionPop();
-        auto address = core->ExecuteInstructionPop();
-        auto fileHandle = core->ExecuteInstructionPop();
-        startStopProcess->Get_processExternalMemory()->WriteFile(core, fileHandle, address, size, [process](CentralProcessingUnitCore* core)
-        {
-            core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-        });
+	case kInteruptCodeExternalMemoryWriteFile:
+	{
+		auto size = core->ExecuteInstructionPop();
+		auto address = core->ExecuteInstructionPop();
+		auto fileHandle = core->ExecuteInstructionPop();
+		startStopProcess->Get_processExternalMemory()->WriteFile(core, fileHandle, address, size);
+		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
 		return true;
-    }
+	}
 
 	case kInteruptCodeFailurePage:
 	{
 		resourcePlanner->RequestResourceElementAny(startStopProcess->Get_resourceMemory(), process);
-
-		auto& queuedInstructions = process->Get_queuedKernelInstructions();
-		if (queuedInstructions.size() != 0)
-		{
-			queuedInstructions.insert(queuedInstructions.begin(), queuedInstructions.front());
-		}
-		else
-		{
-			core->Get_context()->registerIC = core->Get_context()->registerLastIC; // Rollback the instructions
-		}
-
-		process->ExecuteWhenRunning([process](CentralProcessingUnitCore* core)
-		{
-			auto pageEntryAddress = core->Get_context()->registerGeneral;
-			auto mmu = core->Get_mmu();
-			auto physicalAddress = process->GetRequestedResourceElementReturn();
-			mmu->AllocatePage(core, pageEntryAddress, physicalAddress);
-			
-		});
-
+		auto pageEntryAddress = core->Get_context()->registerGeneral;
+		auto mmu = core->Get_mmu();
+		auto physicalAddress = process->GetRequestedResourceElementReturn();
+		mmu->AllocatePage(core, pageEntryAddress, physicalAddress);
 		return true;
 	}
 
 	case kInteruptCodeCreateProcess:
 	{
-		//auto size = core->ExecuteInstructionPop();
-		//auto address = core->ExecuteInstructionPop();
 		auto fileHandle = core->ExecuteInstructionPop();
-		startStopProcess->Get_processManager()->CreateProcessUser(core, fileHandle, [process](CentralProcessingUnitCore* core)
-		{
-			core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-		});
+		startStopProcess->Get_processManager()->CreateProcessUser(core, fileHandle);
+		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
 		return true;
 	}
 

@@ -17,7 +17,7 @@ class ProcessStartStop : public ProcessSystem
 public:
 	ProcessStartStop(OperationSystem* operationSystem);
 
-	void StopOperationSystem(CentralProcessingUnitCore* core, ProcessKernelInstructions callback);
+	void StopOperationSystem(CentralProcessingUnitCore* core);
 
 protected:
 	virtual void Execute(CentralProcessingUnitCore* core);

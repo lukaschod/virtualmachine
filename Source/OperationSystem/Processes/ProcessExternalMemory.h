@@ -15,10 +15,10 @@ class ProcessExternalMemory : public ProcessSystem
 public:
 	ProcessExternalMemory(ProcessStartStop* parent, OperationSystem* operationSystem);
 
-	void OpenFile(CentralProcessingUnit* core, uint32_t filePathAddress, FileAccessFlag accessFlag, ProcessKernelInstructions callback = nullptr);
-	void CloseFile(CentralProcessingUnit* core, uint32_t fileHandle, ProcessKernelInstructions callback = nullptr);
-	void ReadFile(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size, ProcessKernelInstructions callback = nullptr);
-	void WriteFile(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size, ProcessKernelInstructions callback = nullptr);
+	void OpenFile(CentralProcessingUnit* core, uint32_t filePathAddress, FileAccessFlag accessFlag);
+	void CloseFile(CentralProcessingUnit* core, uint32_t fileHandle);
+	void ReadFile(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size);
+	void WriteFile(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size);
 
 protected:
 	virtual void Execute(CentralProcessingUnitCore* core);

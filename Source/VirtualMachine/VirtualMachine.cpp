@@ -40,7 +40,6 @@ void VirtualMachine::WriteHeaderAndPageTable(CentralProcessingUnitCore* core, ui
 	context.registerDS = 0;
 	context.registerCS = context.registerDS + program->GetDataSegmentSize();
 	context.registerIC = context.registerCS;
-	context.registerLastIC = context.registerIC;
 	context.registerSS = context.registerCS + program->GetCodeSegmentSize();
 	context.registerSC = context.registerSS;
 	context.registerEN = context.registerSS + program->GetStackSegmentSize();

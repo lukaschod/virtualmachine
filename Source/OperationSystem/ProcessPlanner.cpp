@@ -201,6 +201,9 @@ void ProcessPlanner::SwitchContext(CentralProcessingUnitCore* core)
 	auto process = readyProcesses.front();
 	RunningProcess(process, core);
 
+	if (lastProcess != process)
+		printf("Loading context for process named %s\n", process->Get_name());
+
 	if (process->Get_physicalContext() == nullptr)
 	{
 		process->Set_physicalContext(new Context([](void* data) 
@@ -229,7 +232,6 @@ void ProcessPlanner::ReadyProcess(Process* process, CentralProcessingUnitCore* c
 
 void ProcessPlanner::RunningProcess(Process* process, CentralProcessingUnitCore* core)
 {
-	printf("Loading context for process named %s\n", process->Get_name());
 	assert(process->Get_state() == ProcessState::kProcessStateReady);
 	process->Set_state(ProcessState::kProcessStateRunning);
 

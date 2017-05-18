@@ -25,7 +25,15 @@ enum InstructionCode
 	kInstructionCodeJMP,
 	kInstructionCodeJMPE,
 	kInstructionCodeJMPL,
-	kInstructionCodeJMPEL
+	kInstructionCodeJMPEL,
+	kInstructionCodeRET,
+	kInstructionCodeCALL,
+	kInstructionCodeSTACK,
+
+	kInstructionCodeLDLOC,
+	kInstructionCodeSTLOC,
+	kInstructionCodeLDARG,
+	kInstructionCodeSTARG,
 };
 
 enum InteruptCode
@@ -70,19 +78,21 @@ class Program
 public:
 	Program();
 
-	bool CreateFromText(const char* source);
+	bool CreateFromText(const char* source, size_t size);
 	bool CompileFromMemoryAndCreate(CentralProcessingUnitCore* core, uint32_t address, uint32_t size);
 	bool CreateFromMemory(CentralProcessingUnitCore* core, uint32_t address, uint32_t size);
 	bool SaveToMemory(CentralProcessingUnitCore* core, uint32_t address);
 
 private:
-	bool CompileInternal(const char* source);
+	bool CompileData(const char* source, size_t size);
+	bool CompileInternal(const char* source, size_t size);
 	bool CompileArithmeticInstructions(const char*& source);
 	bool CompileDataManipulationInstructions(const char*& source);
 	bool CompileInteruptInstructions(const char*& source);
 
 	bool MovePointerIfSame(const char*& source, const char* text);
 	bool MovePointerIfReadedUint32(const char*& source, uint32_t& number);
+	bool MovePointerIfReadedUint32OrLabel(const char*& source, uint32_t& number);
 	bool MovePointerIfReadedStringSymbol(const char*& source);
 	bool MovePointerIfReadedLabel(const char*& source, char* label);
 	bool IsNextSeperator(const char*& source);

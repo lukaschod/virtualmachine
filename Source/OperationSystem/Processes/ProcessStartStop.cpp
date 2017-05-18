@@ -31,28 +31,23 @@ ProcessStartStop::ProcessStartStop(OperationSystem* operationSystem) :
 	processExternalMemory = processPlanner->CreateProcessExternalMemory(this);
 	processIdle = processPlanner->CreateProcessIdle(this);
 	processProgramManager = processPlanner->CreateProcessProgram(this);
+	processOutput = processPlanner->CreateProcessOutput(this);
+	processInput = processPlanner->CreateProcessInput(this);
 }
 
 void ProcessStartStop::Execute(CentralProcessingUnitCore* core)
 {
 	resourcePlanner->RequestResourceElementAny(resourceOSStopRequest, this);
 
-	ExecuteWhenRunning([this](CentralProcessingUnit* core)
-	{
-		auto request = GetRequestedResourceElement();
-		resourcePlanner->DestroyResourceElement(request, this);
-		
-		operationSystem->Get_realMachine()->Stop();
-		processPlanner->KillProcess(this);
-	});
+	auto request = GetRequestedResourceElement();
+	resourcePlanner->DestroyResourceElement(request, this);
+	operationSystem->Get_realMachine()->Stop();
+	processPlanner->KillProcess(this);
 }
 
-void ProcessStartStop::StopOperationSystem(CentralProcessingUnitCore* core, ProcessKernelInstructions callback)
+void ProcessStartStop::StopOperationSystem(CentralProcessingUnitCore* core)
 {
 	auto process = (Process*) core->Get_process();
 	auto response = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceOSStopRequest(), process);
 	resourcePlanner->ProvideResourceElement(response, process);
-
-	if (callback != nullptr)
-		process->ExecuteWhenRunning(callback);
 }

@@ -12,7 +12,7 @@ class ProcessInput : public ProcessSystem
 public:
 	ProcessInput(ProcessStartStop* parent, OperationSystem* operationSystem);
 
-	void ReadLine(CentralProcessingUnitCore* core, uint32_t address, ProcessKernelInstructions callback = nullptr);
+	void ReadLine(CentralProcessingUnitCore* core, uint32_t address);
 
 protected:
 	virtual void Execute(CentralProcessingUnitCore* core);

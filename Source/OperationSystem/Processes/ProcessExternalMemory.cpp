@@ -18,79 +18,76 @@ void ProcessExternalMemory::Execute(CentralProcessingUnitCore* core)
 {
 	resourcePlanner->RequestResourceElementAny(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRequest(), this);
 
-	ExecuteWhenRunning([this](CentralProcessingUnitCore* core)
+	auto request = GetRequestedResourceElement();
+	auto mode = request->indexMode;
+	auto sender = request->sender;
+
+	core->Get_context()->registerPS = sender->Get_context()->registerPS;
+
+	switch (mode)
 	{
-		auto request = GetRequestedResourceElement();
-		auto mode = request->indexMode;
-        auto sender = request->sender;
+	case 0:
+	{
+		auto filePathAddress = request->index2;
+		auto accessFlag = (FileAccessFlag) request->index3;
+		auto fileHandle = core->Get_externalMemory()->Open(core, filePathAddress, accessFlag);
 
-		core->Get_context()->registerPS = sender->Get_context()->registerPS;
-
-		switch (mode)
+		if (fileHandle == 0)
 		{
-		case 0:
-		{
-			auto filePathAddress = request->index2;
-			auto accessFlag = (FileAccessFlag) request->index3;
-            auto fileHandle = core->Get_externalMemory()->Open(core, filePathAddress, accessFlag);
-
-            if (fileHandle == 0)
-            {
-                resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
-                    this, sender, kResourceRespondError, 0);
-                return;
-            }
-
-            resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
-                this, sender, kResourceRespondSuccess, 0, fileHandle);
-
+			resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
+				this, sender, kResourceRespondError, 0);
 			return;
 		}
 
-		case 1:
-		{
-			auto fileHandle = request->index2;
-            core->Get_externalMemory()->Close(core, fileHandle);
+		resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
+			this, sender, kResourceRespondSuccess, 0, fileHandle);
 
-            resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
-                this, sender, kResourceRespondSuccess, 1);
+		return;
+	}
 
-			break;
-		}
+	case 1:
+	{
+		auto fileHandle = request->index2;
+		core->Get_externalMemory()->Close(core, fileHandle);
 
-		case 2:
-		{
-			auto filePathAddress = request->index2;
-			auto address = request->index3;
-			auto size = request->index4;
-            auto readSize = core->Get_externalMemory()->Read(core, filePathAddress, address, size);
+		resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
+			this, sender, kResourceRespondSuccess, 1);
 
-            resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
-                this, sender, kResourceRespondSuccess, 1, readSize);
+		break;
+	}
 
-			break;
-		}
+	case 2:
+	{
+		auto filePathAddress = request->index2;
+		auto address = request->index3;
+		auto size = request->index4;
+		auto readSize = core->Get_externalMemory()->Read(core, filePathAddress, address, size);
 
-		case 3:
-		{
-			auto filePathAddress = request->index2;
-			auto address = request->index3;
-			auto size = request->index4;
-            auto writeSize = core->Get_externalMemory()->Write(core, filePathAddress, address, size);
+		resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
+			this, sender, kResourceRespondSuccess, 1, readSize);
 
-            resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
-                this, sender, kResourceRespondSuccess, 1, writeSize);
+		break;
+	}
 
-			break;
-		}
+	case 3:
+	{
+		auto filePathAddress = request->index2;
+		auto address = request->index3;
+		auto size = request->index4;
+		auto writeSize = core->Get_externalMemory()->Write(core, filePathAddress, address, size);
 
-		}
+		resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(),
+			this, sender, kResourceRespondSuccess, 1, writeSize);
 
-		resourcePlanner->DestroyResourceElement(request, this);
-	});
+		break;
+	}
+
+	}
+
+	resourcePlanner->DestroyResourceElement(request, this);
 }
 
-void ProcessExternalMemory::OpenFile(CentralProcessingUnit* core, uint32_t filePathAddress, FileAccessFlag accessFlag, ProcessKernelInstructions callback)
+void ProcessExternalMemory::OpenFile(CentralProcessingUnit* core, uint32_t filePathAddress, FileAccessFlag accessFlag)
 {
 	auto process = (Process*)core->Get_process();
 
@@ -104,12 +101,9 @@ void ProcessExternalMemory::OpenFile(CentralProcessingUnit* core, uint32_t fileP
 	wait.requestIndex = process->Get_fid();
 	wait.requester = process;
 	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(), wait);
-
-    if (callback != nullptr)
-        process->ExecuteWhenRunning(callback);
 }
 
-void ProcessExternalMemory::CloseFile(CentralProcessingUnit* core, uint32_t fileHandle, ProcessKernelInstructions callback)
+void ProcessExternalMemory::CloseFile(CentralProcessingUnit* core, uint32_t fileHandle)
 {
 	auto process = (Process*) core->Get_process();
 
@@ -122,12 +116,9 @@ void ProcessExternalMemory::CloseFile(CentralProcessingUnit* core, uint32_t file
 	wait.requestIndex = process->Get_fid();
 	wait.requester = process;
 	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(), wait);
-
-    if (callback != nullptr)
-        process->ExecuteWhenRunning(callback);
 }
 
-void ProcessExternalMemory::ReadFile(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size, ProcessKernelInstructions callback)
+void ProcessExternalMemory::ReadFile(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size)
 {
 	auto process = (Process*) core->Get_process();
 
@@ -142,12 +133,9 @@ void ProcessExternalMemory::ReadFile(CentralProcessingUnit* core, uint32_t fileH
 	wait.requestIndex = process->Get_fid();
 	wait.requester = process;
 	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(), wait);
-
-    if (callback != nullptr)
-        process->ExecuteWhenRunning(callback);
 }
 
-void ProcessExternalMemory::WriteFile(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size, ProcessKernelInstructions callback)
+void ProcessExternalMemory::WriteFile(CentralProcessingUnit* core, uint32_t fileHandle, uint32_t address, size_t size)
 {
 	auto process = (Process*) core->Get_process();
 
@@ -162,7 +150,4 @@ void ProcessExternalMemory::WriteFile(CentralProcessingUnit* core, uint32_t file
 	wait.requestIndex = process->Get_fid();
 	wait.requester = process;
 	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceExternalMemoryRespond(), wait);
-
-    if (callback != nullptr)
-        process->ExecuteWhenRunning(callback);
 }

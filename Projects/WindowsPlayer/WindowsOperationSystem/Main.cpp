@@ -11,7 +11,7 @@ int main(int argv, char* argc[])
 	// We initialize the hardware layer that will simulate our real PC hardware components
 	auto realMachineOptions = RealMachineCreateOptions();
 	realMachineOptions.pathToMachine = "C:\\Users\\Lukas-PC\\Desktop\\MyVirtualMachine\\";
-	realMachineOptions.pageCount = 28;
+	realMachineOptions.pageCount = 32;
 	auto realMachine = new RealMachine(realMachineOptions);
 
 	const char* biosSource =
