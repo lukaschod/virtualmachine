@@ -6,7 +6,6 @@
 #include <VirtualMachine\CentralProcessingUnit.h>
 
 Process::Process(const char* name, Process* parent, ProcessPriority priority, OperationSystem* operationSystem) :
-	name(name),
 	operationSystem(operationSystem),
 	parent(parent),
 	state(ProcessState::kProcessStateReady),
@@ -14,6 +13,7 @@ Process::Process(const char* name, Process* parent, ProcessPriority priority, Op
 	processor(nullptr),
 	waitingForResource(nullptr)
 {
+	this->name.Set(name);
 	fid = operationSystem->GenerateUniqueFid();
 	processPlanner = operationSystem->Get_processPlanner();
 	resourcePlanner = operationSystem->Get_resourcePlanner();

@@ -59,15 +59,15 @@ bool Program::SaveToMemory(CentralProcessingUnitCore* core, uint32_t address)
 
 bool Program::CreateFromText(const char* source, size_t size)
 {
-	if (!CompileData(source, size))
+	if (!CompileDataSegment(source, size))
 		return false;
 
-	// Prebakes the labels
-	if (!CompileInternal(source, size)) // TODO: optimize
+	// Pre-compile labels
+	if (!CompileCodeSegment(source, size))
 		return false;
 	codeSegment.clear();
 
-	if (!CompileInternal(source, size))
+	if (!CompileCodeSegment(source, size))
 		return false;
 
 	header.codeSegmentSize = sizeof(uint32_t) * codeSegment.size();
@@ -84,14 +84,20 @@ bool Program::CompileFromMemoryAndCreate(CentralProcessingUnitCore* core, uint32
 	return CreateFromText((const char*)range.pointer, range.size);
 }
 
-bool Program::CompileData(const char* source, size_t size)
+bool Program::CompileDataSegment(const char* source, size_t size)
 {
 	const char* sourceEnd = source + size;
 	size_t instructionSize = 4;
-	while (source != sourceEnd)
+	while (source <= sourceEnd)
 	{
+		if (errors.size() != 0)
+			return false;
+
+		if (MovePointerIfComment(source))
+			continue;
+
 		// Read Heap
-		if (MovePointerIfSame(source, "DATA"))
+		if (MovePointerIfSame(source, ".data"))
 		{
 			char label[MAX_LABEL_SIZE];
 			if (!MovePointerIfReadedLabel(source, label))
@@ -108,9 +114,20 @@ bool Program::CompileData(const char* source, size_t size)
 						break;
 
 					uint8_t value = *source;
-					//if (sscanf_s(source, "%c", &value) != 1)
-					//	return false;
 					source++;
+
+					// Handle special symbols here
+					if (value == '\\')
+					{
+						uint8_t nextValue = *source;
+						source++;
+
+						switch (nextValue)
+						{
+						case 'n':
+							value = '\n';
+						}
+					}
 
 					dataSegment.push_back(value);
 				}
@@ -145,108 +162,24 @@ bool Program::CompileData(const char* source, size_t size)
 	return true;
 }
 
-bool Program::CompileInternal(const char* source, size_t size)
+bool Program::CompileCodeSegment(const char* source, size_t size)
 {
 	const char* sourceEnd = source + size;
 	size_t instructionSize = 4;
-	while (source != sourceEnd)
+	while (source <= sourceEnd)
 	{
-		if (MovePointerIfSame(source, "PROC"))
+		if (errors.size() != 0)
+			return false;
+
+		// Skip data segments as its handled in data compilation
+		if (MovePointerIfSame(source, ".data"))
 		{
-			char label[MAX_LABEL_SIZE];
-			if (!MovePointerIfReadedLabel(source, label))
-				return false;
-
-			UpdateLabelAddress(label, GetDataSegmentSize() + GetCodeSegmentSize());
-
+			MovePointerToEndOfLine(source);
 			continue;
 		}
 
-		if (MovePointerIfSame(source, "LDARG."))
-		{
-			uint32_t index;
-			if (!MovePointerIfReadedUint32(source, index))
-				return false;
-
-			codeSegment.push_back(kInstructionCodeLDARG);
-			codeSegment.push_back(index);
+		if (MovePointerIfComment(source))
 			continue;
-		}
-
-		if (MovePointerIfSame(source, "STARG."))
-		{
-			uint32_t index;
-			if (!MovePointerIfReadedUint32(source, index))
-				return false;
-
-			codeSegment.push_back(kInstructionCodeSTARG);
-			codeSegment.push_back(index);
-			continue;
-		}
-
-		if (MovePointerIfSame(source, "LDLOC."))
-		{
-			uint32_t index;
-			if (!MovePointerIfReadedUint32(source, index))
-				return false;
-
-			codeSegment.push_back(kInstructionCodeLDLOC);
-			codeSegment.push_back(index);
-			continue;
-		}
-
-		if (MovePointerIfSame(source, "STLOC."))
-		{
-			uint32_t index;
-			if (!MovePointerIfReadedUint32(source, index))
-				return false;
-
-			codeSegment.push_back(kInstructionCodeSTLOC);
-			codeSegment.push_back(index);
-			continue;
-		}
-
-		if (MovePointerIfSame(source, "RET"))
-		{
-			codeSegment.push_back(kInstructionCodeRET);
-			continue;
-		}
-
-		if (MovePointerIfSame(source, "CALL"))
-		{
-			char label[MAX_LABEL_SIZE];
-			if (!MovePointerIfReadedLabel(source, label))
-				break;
-
-			uint32_t address;
-			LabelToAddress(label, address);
-
-			uint32_t argumentCount;
-			if (!MovePointerIfReadedUint32(source, argumentCount))
-				return false;
-
-			uint32_t localCount;
-			if (!MovePointerIfReadedUint32(source, localCount))
-				return false;
-
-			codeSegment.push_back(kInstructionCodeCALL);
-			codeSegment.push_back(address);
-			codeSegment.push_back(argumentCount);
-			codeSegment.push_back(localCount);
-
-			continue;
-		}
-
-		if (MovePointerIfSame(source, "#LABEL"))
-		{
-			char label[MAX_LABEL_SIZE];
-			if (!MovePointerIfReadedLabel(source, label))
-				return false;
-
-			UpdateLabelAddress(label, GetDataSegmentSize() + GetCodeSegmentSize());
-
-			continue;
-		}
 
 		if (CompileArithmeticInstructions(source))
 			continue;
@@ -257,7 +190,7 @@ bool Program::CompileInternal(const char* source, size_t size)
 		if (CompileInteruptInstructions(source))
 			continue;
 
-		if (MovePointerIfSame(source, "HALT"))
+		if (MovePointerIfSame(source, "halt"))
 		{
 			codeSegment.push_back(kInstructionCodeHALT);
 			continue;
@@ -272,90 +205,192 @@ bool Program::CompileInternal(const char* source, size_t size)
 
 bool Program::CompileArithmeticInstructions(const char*& source)
 {
-	if (MovePointerIfSame(source, "ADD"))
+	if (MovePointerIfSame(source, "nop"))
+	{
+		codeSegment.push_back(kInstructionCodeNOP);
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "add"))
 	{
 		codeSegment.push_back(kInstructionCodeADD);
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "SUB"))
+	if (MovePointerIfSame(source, "inc"))
+	{
+		codeSegment.push_back(kInstructionCodeINC);
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "dec"))
+	{
+		codeSegment.push_back(kInstructionCodeDEC);
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "sub"))
 	{
 		codeSegment.push_back(kInstructionCodeSUB);
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "MUL"))
+	if (MovePointerIfSame(source, "mul"))
 	{
 		codeSegment.push_back(kInstructionCodeMUL);
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "DIV"))
+	if (MovePointerIfSame(source, "div"))
 	{
 		codeSegment.push_back(kInstructionCodeDIV);
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "AND"))
+	if (MovePointerIfSame(source, "and"))
 	{
 		codeSegment.push_back(kInstructionCodeAND);
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "OR"))
+	if (MovePointerIfSame(source, "or"))
 	{
 		codeSegment.push_back(kInstructionCodeOR);
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "CMP"))
+	if (MovePointerIfSame(source, "ceq"))
 	{
-		codeSegment.push_back(kInstructionCodeCMP);
+		codeSegment.push_back(kInstructionCodeCEQ);
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "cneq"))
+	{
+		codeSegment.push_back(kInstructionCodeCNEQ);
 		return true;
 	}
 
 	return false;
 }
 
+void Program::ReportError(const char* message)
+{
+	assert(false);
+	ProgramCompileError error;
+	error.message = message;
+	errors.push_back(error);
+}
+
 bool Program::CompileDataManipulationInstructions(const char*& source)
 {
-	if (MovePointerIfSame(source, "LDC"))
+	if (MovePointerIfSame(source, "ldarg.", false))
 	{
-		uint32_t value;
-		if (MovePointerIfReadedUint32OrLabel(source, value))
+		uint32_t index;
+		if (!MovePointerIfReadedUint32(source, index))
 		{
-			codeSegment.push_back(kInstructionCodeLDC);
-			codeSegment.push_back(value);
-			return true;
+			ReportError("Expected local argument index.");
+			return false;
 		}
 
+		codeSegment.push_back(kInstructionCodeLDARG);
+		codeSegment.push_back(index);
 		return false;
 	}
 
-	if (MovePointerIfSame(source, "LDI"))
+	if (MovePointerIfSame(source, "starg.", false))
 	{
-		uint32_t value;
-		if (MovePointerIfReadedUint32OrLabel(source, value))
+		uint32_t index;
+		if (!MovePointerIfReadedUint32(source, index))
 		{
-			codeSegment.push_back(kInstructionCodeLDI);
-			codeSegment.push_back(value);
-			return true;
+			ReportError("Expected local argument index.");
+			return false;
 		}
 
+		codeSegment.push_back(kInstructionCodeSTARG);
+		codeSegment.push_back(index);
 		return false;
 	}
 
-	if (MovePointerIfSame(source, "STI"))
+	if (MovePointerIfSame(source, "ldloc.", false))
 	{
-		uint32_t value;
-		if (MovePointerIfReadedUint32OrLabel(source, value))
+		uint32_t index;
+		if (!MovePointerIfReadedUint32(source, index))
 		{
-			codeSegment.push_back(kInstructionCodeSTI);
-			codeSegment.push_back(value);
-			return true;
+			ReportError("Expected local argument index.");
+			return false;
 		}
 
+		codeSegment.push_back(kInstructionCodeLDLOC);
+		codeSegment.push_back(index);
 		return false;
+	}
+
+	if (MovePointerIfSame(source, "stloc.", false))
+	{
+		uint32_t index;
+		if (!MovePointerIfReadedUint32(source, index))
+		{
+			ReportError("Expected local argument index.");
+			return false;
+		}
+
+		codeSegment.push_back(kInstructionCodeSTLOC);
+		codeSegment.push_back(index);
+		return false;
+	}
+
+	if (MovePointerIfSame(source, "ldc.i", false))
+	{
+		uint32_t index;
+		if (!MovePointerIfReadedUint32(source, index))
+		{
+			ReportError("Expected local argument index.");
+			return false;
+		}
+
+		uint32_t value;
+		if (!MovePointerIfReadedUint32OrLabel(source, value))
+		{
+			ReportError("Expected local argument index.");
+			return false;
+		}
+
+		codeSegment.push_back(kInstructionCodeLDC);
+		codeSegment.push_back(index);
+		codeSegment.push_back(value);
+
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "lda.i", false))
+	{
+		uint32_t index;
+		if (!MovePointerIfReadedUint32(source, index))
+		{
+			ReportError("Expected local argument index.");
+			return false;
+		}
+
+		codeSegment.push_back(kInstructionCodeLDA);
+		codeSegment.push_back(index);
+
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "sta.i", false))
+	{
+		uint32_t index;
+		if (!MovePointerIfReadedUint32(source, index))
+		{
+			ReportError("Expected local argument index.");
+			return false;
+		}
+
+		codeSegment.push_back(kInstructionCodeSTA);
+		codeSegment.push_back(index);
+
+		return true;
 	}
 
 	return false;
@@ -363,11 +398,85 @@ bool Program::CompileDataManipulationInstructions(const char*& source)
 
 bool Program::CompileInteruptInstructions(const char*& source)
 {
-	if (MovePointerIfSame(source, "INT"))
+	if (MovePointerIfSame(source, "func"))
+	{
+		Procedure procedure;
+		if (!MovePointerIfReadedLabel(source, procedure.label))
+		{
+			ReportError("Expected name of function.");
+			return false;
+		}
+		if (!MovePointerIfReadedUint32(source, procedure.argumentCount))
+		{
+			ReportError("Expected argument count.");
+			return false;
+		}
+		if (!MovePointerIfReadedUint32(source, procedure.localCount))
+		{
+			ReportError("Expected local count.");
+			return false;
+		}
+		procedure.address = GetDataSegmentSize() + GetCodeSegmentSize();
+
+		procedures.push_back(procedure);
+
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "end"))
+	{
+		codeSegment.push_back(kInstructionCodeEND);
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "ret"))
+	{
+		codeSegment.push_back(kInstructionCodeRET);
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "call"))
+	{
+		char label[MAX_LABEL_SIZE];
+		if (!MovePointerIfReadedLabel(source, label))
+		{
+			ReportError("Expected name of function.");
+			return false;
+		}
+
+		Procedure procedure;
+		LabelToProcedure(label, procedure);
+
+		codeSegment.push_back(kInstructionCodeCALL);
+		codeSegment.push_back(procedure.address);
+		codeSegment.push_back(procedure.argumentCount);
+		codeSegment.push_back(procedure.localCount);
+
+		return true;
+	}
+
+	if (MovePointerIfSame(source, ".label"))
+	{
+		char label[MAX_LABEL_SIZE];
+		if (!MovePointerIfReadedLabel(source, label))
+		{
+			ReportError("Expected name of label.");
+			return false;
+		}
+
+		UpdateLabelAddress(label, GetDataSegmentSize() + GetCodeSegmentSize());
+
+		return true;
+	}
+
+	if (MovePointerIfSame(source, "int"))
 	{
 		uint32_t interuptId;
-		if (!MovePointerIfReadedUint32OrLabel(source, interuptId))
+		if (!MovePointerIfReadedUint32(source, interuptId))
+		{
+			ReportError("Expected interupt index.");
 			return false;
+		}
 
 		codeSegment.push_back(kInstructionCodeINT);
 		codeSegment.push_back(interuptId);
@@ -375,27 +484,52 @@ bool Program::CompileInteruptInstructions(const char*& source)
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "JMP"))
+	if (MovePointerIfSame(source, "br"))
 	{
-		codeSegment.push_back(kInstructionCodeJMP);
+		uint32_t address;
+		if (!MovePointerIfReadedUint32OrLabel(source, address))
+		{
+			ReportError("Expected address.");
+			return false;
+		}
+
+		codeSegment.push_back(kInstructionCodeBR);
+		codeSegment.push_back(address);
+
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "JMPE"))
+	if (MovePointerIfSame(source, "brtrue"))
 	{
-		codeSegment.push_back(kInstructionCodeJMPE);
+		uint32_t address;
+		if (!MovePointerIfReadedUint32OrLabel(source, address))
+		{
+			ReportError("Expected address.");
+			return false;
+		}
+
+		codeSegment.push_back(kInstructionCodeBRTrue);
+		codeSegment.push_back(address);
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "JMPL"))
+	if (MovePointerIfSame(source, "brfalse"))
 	{
-		codeSegment.push_back(kInstructionCodeJMPL);
+		uint32_t address;
+		if (!MovePointerIfReadedUint32OrLabel(source, address))
+		{
+			ReportError("Expected address.");
+			return false;
+		}
+
+		codeSegment.push_back(kInstructionCodeBRFalse);
+		codeSegment.push_back(address);
 		return true;
 	}
 
-	if (MovePointerIfSame(source, "JMPEL"))
+	if (MovePointerIfSame(source, "break"))
 	{
-		codeSegment.push_back(kInstructionCodeJMPEL);
+		codeSegment.push_back(kInstructionCodeBREAK);
 		return true;
 	}
 
@@ -417,6 +551,19 @@ void Program::UpdateLabelAddress(char* label, uint32_t address)
 	memcpy(labelToAddress.first, label, MAX_LABEL_SIZE);
 	labelToAddress.second = address;
 	this->labelToAddress.push_back(labelToAddress);
+}
+
+bool Program::LabelToProcedure(char* label, Procedure& procedure)
+{
+	for (auto itr = procedures.begin(); itr < procedures.end(); itr++)
+	{
+		if (strcmp(itr->label, label) == 0)
+		{
+			procedure = *itr;
+			return true;
+		}
+	}
+	return false;
 }
 
 bool Program::LabelToAddress(char* label, uint32_t& address)
@@ -443,8 +590,16 @@ bool Program::IsNextSeperator(const char*& source)
 			return true;
 		}
 
-		if (*source == '\n')
+		if (*source == '\n' || *source == '\r')
 			return false;
+		source++;
+	}
+}
+
+void Program::MovePointerToEndOfLine(const char*& source)
+{
+	while (*source != '\n' && *source != '\r')
+	{
 		source++;
 	}
 }
@@ -471,15 +626,15 @@ bool Program::MovePointerIfReadedStringSymbol(const char*& source)
 bool Program::MovePointerIfReadedLabel(const char*& source, char* label)
 {
 	auto currentSourcePointer = source;
-	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n')
+	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n' || *currentSourcePointer == '\r')
 	{
-		if (*currentSourcePointer == '\n')
+		if (*currentSourcePointer == '\n' || *currentSourcePointer == '\r')
 			return false;
 		currentSourcePointer++;
 	}
 	auto labelStartPointer = currentSourcePointer;
 
-	while (*currentSourcePointer != ' ' && *currentSourcePointer != '\n')
+	while (*currentSourcePointer != ' ' && *currentSourcePointer != '\n' && *currentSourcePointer != '\r')
 	{
 		currentSourcePointer++;
 	}
@@ -488,7 +643,7 @@ bool Program::MovePointerIfReadedLabel(const char*& source, char* label)
 
 	if (labelSize + 1 > MAX_LABEL_SIZE)
 	{
-		// TODO: EXCEPTION
+		ReportError("Exceeds label size limit.");
 		return false;
 	}
 
@@ -499,17 +654,40 @@ bool Program::MovePointerIfReadedLabel(const char*& source, char* label)
 	return true;
 }
 
-bool Program::MovePointerIfSame(const char*& source, const char* text)
+bool Program::MovePointerIfComment(const char*& source)
 {
 	auto currentSourcePointer = source;
-	while (*currentSourcePointer == ' ' || *currentSourcePointer == '	' || *currentSourcePointer == '\n')
+	while (*currentSourcePointer == ' ' || *currentSourcePointer == '	' || *currentSourcePointer == '\n' || *currentSourcePointer == '\r')
+	{
+		currentSourcePointer++;
+	}
+
+	if (*currentSourcePointer != '/' || *(++currentSourcePointer) != '/')
+		return false;
+
+	while (*currentSourcePointer != '\n' && *currentSourcePointer != '\r')
+	{
+		currentSourcePointer++;
+	}
+
+	source = currentSourcePointer;
+	return true;
+}
+
+bool Program::MovePointerIfSame(const char*& source, const char* text, bool asSeperateWord)
+{
+	auto currentSourcePointer = source;
+	while (*currentSourcePointer == ' ' || *currentSourcePointer == '	' || *currentSourcePointer == '\n' || *currentSourcePointer == '\r')
 	{
 		currentSourcePointer++;
 	}
 
 	auto currentTextPointer = text;
-	while (*currentTextPointer != '\0')
+	while (true)
 	{
+		if (*currentTextPointer == '\0' && 
+			(!asSeperateWord || *currentSourcePointer == ' ' || *currentSourcePointer == '\n' || *currentSourcePointer == '\r' || *currentSourcePointer == 0))
+			break;
 		if (*currentSourcePointer != *currentTextPointer)
 			return false;
 		currentSourcePointer++;
@@ -523,7 +701,7 @@ bool Program::MovePointerIfSame(const char*& source, const char* text)
 bool Program::MovePointerIfReadedUint32(const char*& source, uint32_t& number)
 {
 	auto currentSourcePointer = source;
-	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n')
+	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n' || *currentSourcePointer == '\r')
 	{
 		currentSourcePointer++;
 	}
@@ -533,7 +711,7 @@ bool Program::MovePointerIfReadedUint32(const char*& source, uint32_t& number)
 		return false;
 	}
 
-	while (*currentSourcePointer != ',' && *currentSourcePointer != ' ' && *currentSourcePointer != '\n')
+	while (*currentSourcePointer != ',' && *currentSourcePointer != ' ' && *currentSourcePointer != '\n' && *currentSourcePointer != '\r')
 	{
 		currentSourcePointer++;
 	}
@@ -545,7 +723,7 @@ bool Program::MovePointerIfReadedUint32(const char*& source, uint32_t& number)
 bool Program::MovePointerIfReadedUint32OrLabel(const char*& source, uint32_t& number)
 {
 	auto currentSourcePointer = source;
-	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n')
+	while (*currentSourcePointer == ' ' || *currentSourcePointer == '\n' || *currentSourcePointer == '\r')
 	{
 		currentSourcePointer++;
 	}
@@ -565,7 +743,7 @@ bool Program::MovePointerIfReadedUint32OrLabel(const char*& source, uint32_t& nu
 		}
 	}
 
-	while (*currentSourcePointer != ',' && *currentSourcePointer != ' ' && *currentSourcePointer != '\n')
+	while (*currentSourcePointer != ',' && *currentSourcePointer != ' ' && *currentSourcePointer != '\n' && *currentSourcePointer != '\r')
 	{
 		currentSourcePointer++;
 	}

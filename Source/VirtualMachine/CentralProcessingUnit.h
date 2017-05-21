@@ -70,8 +70,8 @@ public:
 
 	void SetInterupt(InteruptCode code) { context.SetInterupt(code); }
 	bool IsInteruptHappened() { return context.IsInteruptHappened(); }
-	void ExecuteInstructionPush(uint32_t value);
-	uint32_t ExecuteInstructionPop();
+	void ExecuteInstructionPush(uint32_t value, uint32_t size = 4);
+	uint32_t ExecuteInstructionPop(uint32_t size = 4);
 	bool HandleInterupts();
 	
 private:

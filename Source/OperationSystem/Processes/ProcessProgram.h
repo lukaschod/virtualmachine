@@ -23,7 +23,7 @@ public:
 
 protected:
 	virtual void Execute(CentralProcessingUnitCore* core);
-	bool MakeSureReservedMemoryIsAllocated();
+	bool MakeSureReservedMemoryIsAllocated(CentralProcessingUnitCore* core);
 
 private:
 	ProcessStartStop* startStop;

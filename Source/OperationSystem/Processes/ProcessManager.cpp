@@ -42,6 +42,8 @@ void ProcessManager::Execute(CentralProcessingUnitCore* core)
 		}
 		auto program = startStop->Get_processProgramManager()->HandleToProgram(GetRequestedResourceElementReturn());
 
+		auto elementsBeforeCreate = Get_ownedResourceElements().size();
+
 		// Request ram
 		ResourceRequest memoryRequest;
 		auto requestMemoryCount = sizeof(VirtualMachineHeader) + sizeof(PageTable) + sizeof(PageEntry) * operationSystem->Get_pageCount();
@@ -55,14 +57,28 @@ void ProcessManager::Execute(CentralProcessingUnitCore* core)
 		auto virtalMachine = new VirtualMachine(program);
 		virtalMachine->WriteHeaderAndPageTable(core, element->indexReturn);
 
+		// Read process name
+		char processName[MAX_FILEPATH_SIZE];
+		auto memory = core->Get_memory();
+		memory->ReadToRealMemory(core, request->index3, processName, MAX_FILEPATH_SIZE);
+		processName[MAX_FILEPATH_SIZE - 1] = 0;
+
 		// Create user process from virtual machine
-		auto processUser = processPlanner->CreateProcessUser(this, "TODO ADD NAME", kProcessPriorityMedium, virtalMachine);
+		auto processUser = processPlanner->CreateProcessUser(this, processName, kProcessPriorityMedium, virtalMachine);
 		core->Get_context()->registerPS = processUser->Get_context()->registerPS;
 
 		// Allocate the segments
 		virtalMachine->WriteDataSegment(core);
 		virtalMachine->WriteCodeSegment(core);
 		virtalMachine->WriteStackSegment(core);
+
+		// TODO: This is not clean, but we have to move all requested ram elements to process
+		while (Get_ownedResourceElements().size() != elementsBeforeCreate)
+		{
+			auto element = Get_ownedResourceElements().back();
+			Get_ownedResourceElements().pop_back();
+			processUser->Get_ownedResourceElements().push_back(element);
+		}
 
 		resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProcessManagerRespond(),
 			this, sender, kResourceRespondSuccess, 0, ProcessUserToHandle(processUser));
@@ -89,12 +105,13 @@ void ProcessManager::Execute(CentralProcessingUnitCore* core)
 	resourcePlanner->DestroyResourceElement(request, this);
 }
 
-void ProcessManager::CreateProcessUser(CentralProcessingUnitCore* core, uint32_t pathToFileAddress)
+void ProcessManager::CreateProcessUser(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, uint32_t addressToName)
 {
 	auto process = (Process*) core->Get_process();
 	auto request = new ResourceElement(operationSystem->Get_startStopProcess()->Get_resourceProcessManagerRequest(), process);
 	request->indexMode = 0;
 	request->index2 = pathToFileAddress;
+	request->index3 = addressToName;
 	resourcePlanner->ProvideResourceElement(request, process);
 
 	auto wait = ResourceRequest();

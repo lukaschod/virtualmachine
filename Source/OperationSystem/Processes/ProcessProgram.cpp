@@ -19,7 +19,7 @@ ProcessProgram::ProcessProgram(ProcessStartStop* parent, OperationSystem* operat
 
 void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 {
-	if (!MakeSureReservedMemoryIsAllocated())
+	if (!MakeSureReservedMemoryIsAllocated(core))
 		return;
 
 	resourcePlanner->RequestResourceElementAny(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRequest(), this);
@@ -74,7 +74,7 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 	case 1:
 	{
 		// Write program assembly to memory
-		auto program = HandleToProgram(fileHandle);
+		auto program = HandleToProgram(request->index3);
 		core->Get_context()->registerPS = 0; // We don;t want to read from mmu memory here
 		if (!program->SaveToMemory(core, reservedMemoryRange.address))
 		{
@@ -125,16 +125,15 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 		break;
 	}
 
-	case 3:
+	case kInteruptCreateProgramFromSource:
 	{
 		// Open file
 		auto pathToSource = request->index2;
-		auto pathToOutput = request->index3;
 		startStop->Get_processExternalMemory()->OpenFile(core, pathToSource, kFileAccessReadBit);
 		if (GetRequestedResourceElementError() != kResourceRespondSuccess)
 		{
 			resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
-				this, sender, kResourceRespondError, 3);
+				this, sender, kResourceRespondError, kInteruptCreateProgramFromSource);
 			return;
 		}
 		auto fileHandle = GetRequestedResourceElementReturn();
@@ -145,6 +144,11 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 		startStop->Get_processExternalMemory()->ReadFile(core, fileHandle, reservedMemoryRange.address, reservedMemoryRange.size);
 		reservedMemoryUsed += GetRequestedResourceElementReturn();
 
+		// Lets add end symbol, it will be easier for compiler to deal
+		auto endOfFileSymbol = 0;
+		core->Get_ram()->WriteFromRealMemory(core, &endOfFileSymbol, reservedMemoryRange.address + reservedMemoryUsed, 1);
+		reservedMemoryUsed++;
+
 		// Close file
 		startStop->Get_processExternalMemory()->CloseFile(core, fileHandle);
 
@@ -154,11 +158,11 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 		{
 			assert(false);
 			resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
-				this, sender, kResourceRespondError, 3);
+				this, sender, kResourceRespondError, kInteruptCreateProgramFromSource);
 			return;
 		}
 		resourcePlanner->ProvideResourceElementAsResponse(operationSystem->Get_startStopProcess()->Get_resourceProgramManagerRespond(),
-			this, sender, kResourceRespondSuccess, 3, ProgramToHandle(program));
+			this, sender, kResourceRespondSuccess, kInteruptCreateProgramFromSource, ProgramToHandle(program));
 
 		break;
 	}
@@ -168,24 +172,22 @@ void ProcessProgram::Execute(CentralProcessingUnitCore* core)
 }
 
 
-bool ProcessProgram::MakeSureReservedMemoryIsAllocated()
+bool ProcessProgram::MakeSureReservedMemoryIsAllocated(CentralProcessingUnitCore* core)
 {
 	if (isReservedRangeValid)
 		return true;
 
 	ResourceRequest memoryRequest;
-	auto requestMemoryPageCount = 20;
+	auto requestMemoryPageCount = 30;
 	memoryRequest.count = requestMemoryPageCount;
 	memoryRequest.requester = this;
 	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceMemory(), memoryRequest);
 
-	ExecuteWhenRunning([this, requestMemoryPageCount](CentralProcessingUnitCore* core)
-	{
-		auto element = Get_ownedResourceElements()[Get_ownedResourceElements().size() - requestMemoryPageCount];
-		reservedMemoryRange.address = element->indexReturn;
-		reservedMemoryRange.size = requestMemoryPageCount * core->Get_ram()->Get_pageSize();
-		isReservedRangeValid = true;
-	});
+	auto element = Get_ownedResourceElements()[Get_ownedResourceElements().size() - requestMemoryPageCount];
+	reservedMemoryRange.address = element->indexReturn;
+	reservedMemoryRange.size = requestMemoryPageCount * core->Get_ram()->Get_pageSize();
+	isReservedRangeValid = true;
+
 	return isReservedRangeValid;
 }
 
@@ -219,5 +221,5 @@ void ProcessProgram::DestroyProgram(CentralProcessingUnitCore* core, uint32_t pr
 
 void ProcessProgram::CreateProgramFromSource(CentralProcessingUnitCore* core, uint32_t pathToFileAddress)
 {
-	AUTOMATED_PROGRAM_REQUEST_WAIT(3, pathToFileAddress, 0);
+	AUTOMATED_PROGRAM_REQUEST_WAIT(kInteruptCreateProgramFromSource, pathToFileAddress, 0);
 }

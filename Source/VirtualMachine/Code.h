@@ -8,24 +8,29 @@ class CentralProcessingUnitCore;
 
 enum InstructionCode
 {
+	kInstructionCodeNOP,
 	kInstructionCodeADD,
 	kInstructionCodeSUB,
 	kInstructionCodeMUL,
 	kInstructionCodeDIV,
 	kInstructionCodeAND,
 	kInstructionCodeOR,
-	kInstructionCodeCMP,
+	kInstructionCodeCEQ,
+	kInstructionCodeCNEQ,
+	kInstructionCodeINC,
+	kInstructionCodeDEC,
 
 	kInstructionCodeLDC,
-	kInstructionCodeLDI,
-	kInstructionCodeSTI,
+
+	kInstructionCodeLDA,
+	kInstructionCodeSTA,
 
 	kInstructionCodeINT,
 	kInstructionCodeHALT,
-	kInstructionCodeJMP,
-	kInstructionCodeJMPE,
-	kInstructionCodeJMPL,
-	kInstructionCodeJMPEL,
+	kInstructionCodeBR,
+	kInstructionCodeBRTrue,
+	kInstructionCodeBRFalse,
+	kInstructionCodeEND,
 	kInstructionCodeRET,
 	kInstructionCodeCALL,
 	kInstructionCodeSTACK,
@@ -34,6 +39,8 @@ enum InstructionCode
 	kInstructionCodeSTLOC,
 	kInstructionCodeLDARG,
 	kInstructionCodeSTARG,
+
+	kInstructionCodeBREAK,
 };
 
 enum InteruptCode
@@ -56,12 +63,16 @@ enum InteruptCode
 
 	kInteruptCodeCreateProcess,
 
-	kInteruptCodeCPUStart,
+	kInteruptCodeOSStart,
 
 	kInteruptCreateProgramFromSource,
 	kInteruptLoadProgramFromFile,
 	kInteruptSaveProgramToFile,
 	kInteruptDestroyProgram,
+
+	kInteruptCodeOSEnd,
+
+	kInteruptCodeReporRam,
 };
 
 #define MAX_LABEL_SIZE 30
@@ -71,6 +82,19 @@ struct ProgramHeader
 	uint32_t codeSegmentSize;
 	uint32_t dataSegmentSize;
 	uint32_t stackSegmentSize;
+};
+
+struct Procedure
+{
+	char label[MAX_LABEL_SIZE];
+	uint32_t localCount;
+	uint32_t argumentCount;
+	uint32_t address;
+};
+
+struct ProgramCompileError
+{
+	const char* message;
 };
 
 class Program
@@ -84,20 +108,25 @@ public:
 	bool SaveToMemory(CentralProcessingUnitCore* core, uint32_t address);
 
 private:
-	bool CompileData(const char* source, size_t size);
-	bool CompileInternal(const char* source, size_t size);
+	bool CompileDataSegment(const char* source, size_t size);
+	bool CompileCodeSegment(const char* source, size_t size);
 	bool CompileArithmeticInstructions(const char*& source);
 	bool CompileDataManipulationInstructions(const char*& source);
 	bool CompileInteruptInstructions(const char*& source);
 
-	bool MovePointerIfSame(const char*& source, const char* text);
+	bool MovePointerIfSame(const char*& source, const char* text, bool asSeperateWord = true);
 	bool MovePointerIfReadedUint32(const char*& source, uint32_t& number);
 	bool MovePointerIfReadedUint32OrLabel(const char*& source, uint32_t& number);
 	bool MovePointerIfReadedStringSymbol(const char*& source);
 	bool MovePointerIfReadedLabel(const char*& source, char* label);
+	bool MovePointerIfComment(const char*& source);
+	void MovePointerToEndOfLine(const char*& source);
 	bool IsNextSeperator(const char*& source);
 	void UpdateLabelAddress(char* label, uint32_t address);
 	bool LabelToAddress(char* label, uint32_t& address);
+	bool LabelToProcedure(char* label, Procedure& procedure);
+
+	void ReportError(const char* error);
 
 public:
 	inline void* GetDataSegment() { return dataSegment.data(); }
@@ -115,6 +144,8 @@ private:
 	std::vector<uint32_t> codeSegment;
 	std::vector<uint8_t> dataSegment;
 	std::vector<std::pair<char[MAX_LABEL_SIZE], uint32_t>> labelToAddress;
+	std::vector<Procedure> procedures;
+	std::vector<ProgramCompileError> errors;
 };
 
 class Compiler

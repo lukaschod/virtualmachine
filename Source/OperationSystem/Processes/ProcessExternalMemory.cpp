@@ -6,11 +6,6 @@
 #include <VirtualMachine\CentralProcessingUnit.h>
 #include <VirtualMachine\ExternalMemory.h>
 
-#define USER_SENDER_CONTEX(core, sender, method) \
-    *core->Get_context() = *sender->Get_context(); \
-    method; \
-    *core->Get_context() = context;
-
 ProcessExternalMemory::ProcessExternalMemory(ProcessStartStop* parent, OperationSystem* operationSystem) :
 	ProcessSystem("ProcessExternalMemory", parent, kProcessPriorityHigh, operationSystem) { }
 

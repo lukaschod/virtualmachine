@@ -24,7 +24,7 @@ OperationSystem::OperationSystem(RealMachine* realMachine)
 	pageCount = realMachine->GetCpu()->Get_ram()->Get_pageCount();
 
 	realMachine->GetCpu()->Set_interuptHandler(this); // Overrides cpu interupt handlers, its OS core.
-	realMachine->GetCpu()->SetInterupt(kInteruptCodeCPUStart);
+	realMachine->GetCpu()->SetInterupt(kInteruptCodeOSStart);
 }
 
 OperationSystem::~OperationSystem()
@@ -54,7 +54,7 @@ bool OperationSystem::HandleInterupt(CentralProcessingUnitCore* core)
 		auto address = core->ExecuteInstructionPop();
 		startStopProcess->Get_processProgramManager()->CreateProgramFromSource(core, address);
 		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-		break;
+		return true;
 	}
 
 	case kInteruptLoadProgramFromFile:
@@ -62,7 +62,7 @@ bool OperationSystem::HandleInterupt(CentralProcessingUnitCore* core)
 		auto address = core->ExecuteInstructionPop();
 		startStopProcess->Get_processProgramManager()->LoadProgramFromFile(core, address);
 		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-		break;
+		return true;
 	}
 
 	case kInteruptSaveProgramToFile:
@@ -71,28 +71,28 @@ bool OperationSystem::HandleInterupt(CentralProcessingUnitCore* core)
 		auto address = core->ExecuteInstructionPop();
 		startStopProcess->Get_processProgramManager()->SaveProgramToFile(core, address, programHandle);
 		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
-		break;
+		return true;
 	}
 
 	case kInteruptDestroyProgram:
 	{
 		auto programHandle = core->ExecuteInstructionPop();
 		startStopProcess->Get_processProgramManager()->DestroyProgram(core, programHandle);
-		break;
+		return true;
 	}
 
 	case kInteruptCodeInputReadUntilEnter:
 	{
 		auto address = core->ExecuteInstructionPop();
 		startStopProcess->Get_processInput()->ReadLine(core, address);
-		break;
+		return true;
 	}
 
 	case kInteruptCodeOutputPrintToScreen:
 	{
 		auto address = core->ExecuteInstructionPop();
 		startStopProcess->Get_processOutput()->PrintLine(core, address, 0);
-		break;
+		return true;
 	}
 
 	case kInteruptCodeExternalMemoryOpenFile:
@@ -143,15 +143,29 @@ bool OperationSystem::HandleInterupt(CentralProcessingUnitCore* core)
 
 	case kInteruptCodeCreateProcess:
 	{
+		auto name = core->ExecuteInstructionPop();
 		auto fileHandle = core->ExecuteInstructionPop();
-		startStopProcess->Get_processManager()->CreateProcessUser(core, fileHandle);
+		startStopProcess->Get_processManager()->CreateProcessUser(core, fileHandle, name);
 		core->ExecuteInstructionPush(process->GetRequestedResourceElementReturn());
 		return true;
 	}
 
-	case kInteruptCodeCPUStart:
+	case kInteruptCodeOSStart:
 	{
 		startStopProcess = processPlanner->CreateProcessStartStop();
+		return true;
+	}
+
+	case kInteruptCodeOSEnd:
+	{
+		startStopProcess->StopOperationSystem(core);
+		return true;
+	}
+
+	case kInteruptCodeReporRam:
+	{
+		// TODO: Remove it as it doesn't use output process
+		printf("Ram left of pages: %d\n", startStopProcess->Get_resourceMemory()->Get_elements().size());
 		return true;
 	}
 

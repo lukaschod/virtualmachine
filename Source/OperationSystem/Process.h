@@ -14,6 +14,16 @@ class Resource;
 class ResourceElement;
 class Context;
 
+struct ProcessName
+{
+	void Set(const char* name)
+	{
+		strcpy(this->pointer, name);
+	}
+
+	char pointer[128];
+};
+
 enum ProcessState
 {
 	kProcessStateRunning,
@@ -46,9 +56,11 @@ public:
 	uint32_t GetRequestedResourceElementReturn();
 	uint32_t GetRequestedResourceElementError();
 
+	inline const char* GetName() { return name.pointer; }
+
 protected:
 	AUTOMATED_PROPERTY_GET(uint32_t, fid);
-	AUTOMATED_PROPERTY_GET(const char*, name);
+	ProcessName name;
 	AUTOMATED_PROPERTY_GETSET(ProcessState, state);
 	AUTOMATED_PROPERTY_GET(OperationSystem*, operationSystem);
 	AUTOMATED_PROPERTY_GETSET(CentralProcessingUnitCore*, processor);

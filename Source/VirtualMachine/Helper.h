@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <assert.h>
 
+#pragma warning(disable:4996)
+
 #define DIVIDE_WITH_FRACTION_ADDED(Value, Divider) Value / Divider + ((Value & Divider) == 0 ? 0 : 1)
 
 #define CLAMP(Value, Min, Max) Value < Min ? Min : (Value > Max ? Max : Value)

@@ -101,11 +101,30 @@ void CentralProcessingUnit::ExecuteInstruction()
 	auto instructionCode = GetNextInstruction();
 	switch (instructionCode)
 	{
+	case kInstructionCodeNOP:
+	{
+		return;
+	}
+
 	case kInstructionCodeADD:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
 		ExecuteInstructionPush(value1 + value2);
+		return;
+	}
+
+	case kInstructionCodeINC:
+	{
+		auto value = ExecuteInstructionPop() + 1;
+		ExecuteInstructionPush(value);
+		return;
+	}
+
+	case kInstructionCodeDEC:
+	{
+		auto value = ExecuteInstructionPop() - 1;
+		ExecuteInstructionPush(value);
 		return;
 	}
 
@@ -149,34 +168,46 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case kInstructionCodeCMP:
+	case kInstructionCodeCEQ:
 	{
 		auto value1 = ExecuteInstructionPop();
 		auto value2 = ExecuteInstructionPop();
-		ExecuteInstructionPush(value1 - value2);
+		ExecuteInstructionPush(value1 == value2);
+		return;
+	}
+
+	case kInstructionCodeCNEQ:
+	{
+		auto value1 = ExecuteInstructionPop();
+		auto value2 = ExecuteInstructionPop();
+		ExecuteInstructionPush(value1 != value2);
 		return;
 	}
 
 	case kInstructionCodeLDC:
 	{
+		auto index = GetNextInstruction();
 		auto value = GetNextInstruction();
 		ExecuteInstructionPush(value);
 		return;
 	}
 
-	case kInstructionCodeLDI:
+	case kInstructionCodeLDA:
 	{
-		auto value = AddressToValue(GetNextInstruction());
+		auto index = GetNextInstruction();
+		auto address = ExecuteInstructionPop();
+		uint32_t value = 0;
+		mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, address, &value, index);
 		ExecuteInstructionPush(value);
 		return;
 	}
 
-	case kInstructionCodeSTI:
+	case kInstructionCodeSTA:
 	{
-		auto address = GetNextInstruction();
+		auto index = GetNextInstruction();
 		auto value = ExecuteInstructionPop();
-		mmu->WriteFromRealMemory((CentralProcessingUnitCore*)this, &value, address);
-		
+		auto address = ExecuteInstructionPop();
+		mmu->WriteFromRealMemory((CentralProcessingUnitCore*)this, &value, address, index);
 		return;
 	}
 
@@ -187,36 +218,27 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case kInstructionCodeJMP:
+	case kInstructionCodeBR:
 	{
-		auto address = ExecuteInstructionPop();
+		auto address = GetNextInstruction();
 		context.registerIC = address;
 		return;
 	}
 
-	case kInstructionCodeJMPE:
+	case kInstructionCodeBRFalse:
 	{
-		auto flag = ExecuteInstructionPop();
-		auto address = ExecuteInstructionPop();
-		if (HAS_FLAG(context.registerC, kFlagRegisterEqualBit))
+		auto address = GetNextInstruction();
+		auto condition = ExecuteInstructionPop();
+		if (condition == 0)
 			context.registerIC = address;
 		return;
 	}
 
-	case kInstructionCodeJMPL:
+	case kInstructionCodeBRTrue:
 	{
-		auto flag = ExecuteInstructionPop();
-		auto address = ExecuteInstructionPop();
-		if (HAS_FLAG(context.registerC, kFlagRegisterLessBit))
-			context.registerIC = address;
-		return;
-	}
-
-	case kInstructionCodeJMPEL:
-	{
-		auto flag = ExecuteInstructionPop();
-		auto address = ExecuteInstructionPop();
-		if (HAS_FLAG(context.registerC, kFlagRegisterEqualBit) || HAS_FLAG(context.registerC, kFlagRegisterLessBit))
+		auto address = GetNextInstruction();
+		auto condition = ExecuteInstructionPop();
+		if (condition != 0)
 			context.registerIC = address;
 		return;
 	}
@@ -245,7 +267,7 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case kInstructionCodeRET:
+	case kInstructionCodeEND:
 	{
 		context.registerSC = context.registerLOC;
 		context.registerLOC = ExecuteInstructionPop();
@@ -255,10 +277,32 @@ void CentralProcessingUnit::ExecuteInstruction()
 		return;
 	}
 
-	case kInstructionCodeSTACK:
+	case kInstructionCodeRET:
 	{
-		auto size = GetNextInstruction();
-		context.registerSC += size;
+		auto returnValue = ExecuteInstructionPop();
+		context.registerSC = context.registerLOC;
+		context.registerLOC = ExecuteInstructionPop();
+		context.registerARG = ExecuteInstructionPop();
+		context.registerSC = ExecuteInstructionPop();
+		context.registerIC = ExecuteInstructionPop();
+		ExecuteInstructionPush(returnValue);
+		return;
+	}
+
+	case kInstructionCodeBREAK:
+	{
+		START_SUPERVISOR_MODE
+
+		//printf("%s\n", ram->ToString().c_str());
+		printf("%s\n", mmu->ToString((CentralProcessingUnitCore*)this).c_str());
+		printf("%s\n", ToStringStackSegment().c_str());
+		printf("%s\n", ToStringDataSegment().c_str());
+
+		printf("%s\n", ToString().c_str());
+		printf("\n<PRESS ANY KEY TO CONTINUE>\n");
+		getchar();
+
+		END_SUPERVISOR_MODE
 		return;
 	}
 
@@ -405,18 +449,18 @@ uint32_t CentralProcessingUnit::AddressToValue(uint32_t address)
 	return value;
 }
 
-uint32_t CentralProcessingUnit::ExecuteInstructionPop()
+uint32_t CentralProcessingUnit::ExecuteInstructionPop(uint32_t size)
 {
 	uint32_t currentStackValue;
-	context.registerSC -= 4;
+	context.registerSC -= size;
 	mmu->ReadToRealMemory((CentralProcessingUnitCore*)this, context.registerSC, &currentStackValue);
 	return currentStackValue;
 }
 
-void CentralProcessingUnit::ExecuteInstructionPush(uint32_t value)
+void CentralProcessingUnit::ExecuteInstructionPush(uint32_t value, uint32_t size)
 {
 	mmu->WriteFromRealMemory((CentralProcessingUnitCore*)this, &value, context.registerSC);
-	context.registerSC += 4;
+	context.registerSC += size;
 }
 
 std::string CentralProcessingUnit::ToString()

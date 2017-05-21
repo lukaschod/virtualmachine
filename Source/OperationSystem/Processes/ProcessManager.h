@@ -12,7 +12,7 @@ class ProcessManager : public ProcessSystem
 public:
 	ProcessManager(ProcessStartStop* parent, OperationSystem* operationSystem);
 
-	void CreateProcessUser(CentralProcessingUnitCore* core, uint32_t pathToFileAddress);
+	void CreateProcessUser(CentralProcessingUnitCore* core, uint32_t pathToFileAddress, uint32_t addressToName);
 	void DestroyProcessUser(CentralProcessingUnitCore* core, uint32_t processHandle);
 
 	ProcessUser* HandleToProcessUser(uint32_t processHandle) { return (ProcessUser*) processHandle; } // TODO: Make table lookup

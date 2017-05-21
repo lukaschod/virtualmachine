@@ -9,6 +9,7 @@ Output::Output()
 
 void Output::PrintToScreen(CentralProcessingUnitCore* core, uint32_t address)
 {
+	auto test = "hello\nh";
 	auto memory = core->Get_memory();
 	// TODO: fix this inefficient shit
 	while (true)

@@ -19,42 +19,48 @@ void ProcessIdle::Execute(CentralProcessingUnitCore* core)
 		return;
 	isStartProcessCreated = true;
 
-	uint32_t pathToFileSourceAddress;
-	uint32_t pathToFileAssemblyAddress;
-
 	auto startStop = operationSystem->Get_startStopProcess();
 	auto processManager = startStop->Get_processManager();
 	auto programManager = startStop->Get_processProgramManager();
 
-	// Request ram for storing temporary information
+	auto pathToSource = "startup.asm";
+	auto pathToAssembly = "startup.exe";
+	auto name = "Startup";
+
+	auto pathToSourceSize = strlen(pathToSource) + 1;
+	auto pathToAssemblySize = strlen(pathToAssembly) + 1;
+	auto nameSize = strlen(name) + 1;
+
+	// Request ram
 	ResourceRequest memoryRequest;
-	memoryRequest.count = 1;
+	auto requestMemoryCount = pathToSourceSize + pathToAssemblySize + nameSize;
+	auto requestMemoryPageCount = 1;
+	memoryRequest.count = requestMemoryPageCount;
 	memoryRequest.requester = this;
 	resourcePlanner->RequestResourceElement(operationSystem->Get_startStopProcess()->Get_resourceMemory(), memoryRequest);
+	auto element = Get_ownedResourceElements()[Get_ownedResourceElements().size() - requestMemoryPageCount];
+	auto address = element->indexReturn;
 
-	// Write path from where startup process is compiled
-	auto element = GetRequestedResourceElement();
-	pathToFileSourceAddress = GetRequestedResourceElementReturn();
-	const char* pathToSource = "startup.asm";
-	auto size = strlen(pathToSource) + 1;
-	core->Get_ram()->WriteFromRealMemory(core, (void*) pathToSource, pathToFileSourceAddress, size);
+	uint32_t pathToSourceAddress = address;
+	uint32_t pathToAssemblyAddress = pathToSourceAddress + pathToSourceSize;
+	uint32_t nameAddress = pathToSourceAddress + pathToAssemblySize;
 
-	// Write path where startup proesses source is converted into executable
-	pathToFileAssemblyAddress = pathToFileSourceAddress + size;
-	const char* pathToAssembly = "startup.exe";
-	core->Get_ram()->WriteFromRealMemory(core, (void*) pathToAssembly, pathToFileAssemblyAddress, size);
+	auto ram = core->Get_ram();
+	ram->WriteFromRealMemory(core, (void*) pathToSource, pathToSourceAddress, pathToSourceSize);
+	ram->WriteFromRealMemory(core, (void*) pathToAssembly, pathToAssemblyAddress, pathToAssemblySize);
+	ram->WriteFromRealMemory(core, (void*) name, nameAddress, nameSize);
 
 	// Compile source
-	programManager->CreateProgramFromSource(core, pathToFileSourceAddress);
+	programManager->CreateProgramFromSource(core, pathToSourceAddress);
 	auto error = GetRequestedResourceElementError();
 	assert(error == kResourceRespondSuccess);
 
 	// Start process
 	auto programHanlde = GetRequestedResourceElementReturn();
-	programManager->SaveProgramToFile(core, pathToFileAssemblyAddress, programHanlde);
+	programManager->SaveProgramToFile(core, pathToAssemblyAddress, programHanlde);
 	error = GetRequestedResourceElementError();
 	assert(error == kResourceRespondSuccess);
-	processManager->CreateProcessUser(core, pathToFileAssemblyAddress);
+	processManager->CreateProcessUser(core, pathToAssemblyAddress, nameAddress);
 	error = GetRequestedResourceElementError();
 	assert(error == kResourceRespondSuccess);
 

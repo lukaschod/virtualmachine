@@ -48,6 +48,8 @@ void RandomAccessMemory::Read(CentralProcessingUnitCore* core, uint32_t srcAddre
 void RandomAccessMemory::WriteZeros(CentralProcessingUnitCore* core, uint32_t address, size_t size)
 {
 	auto pointer = AddressToPointerRange(core, address, size);
+	if (pointer.size == 0)
+		return;
 	memset(pointer.pointer, 0, size);
 }
 
