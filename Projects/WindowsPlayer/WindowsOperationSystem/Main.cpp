@@ -10,14 +10,9 @@ int main(int argv, char* argc[])
 {
 	// We initialize the hardware layer that will simulate our real PC hardware components
 	auto realMachineOptions = RealMachineCreateOptions();
-	realMachineOptions.pathToMachine = "C:\\Users\\Lukas-PC\\Desktop\\MyVirtualMachine\\";
+	realMachineOptions.pathToMachine = "D:\\Source\\virtualmachine\\Demo\\MyVirtualMachine\\";
 	realMachineOptions.pageCount = 60;
 	auto realMachine = new RealMachine(realMachineOptions);
-
-	const char* biosSource =
-		"DATA pathToOS &myOS.dll&\n"
-		"LDC pathToOS\n"
-		"INT 14 \n";
 
 	// We create operation system:
 	// Allocate supervisor memory and apply it on real machine memory

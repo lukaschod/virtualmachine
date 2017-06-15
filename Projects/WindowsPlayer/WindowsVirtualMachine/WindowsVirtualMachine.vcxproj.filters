@@ -2,27 +2,81 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\Code.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\ExternalMemory.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\Input.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\Output.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\RandomAccessMemory.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\RealMachine.cpp" />
-    <ClCompile Include="..\..\..\Source\VirtualMachine\VirtualMachine.cpp" />
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Context.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\ExternalMemory.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Input.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Output.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\RandomAccessMemory.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\RealMachine.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\VirtualMachine.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\VirtualMachine\Code.cpp">
+      <Filter>VirtualMachine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\Code.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\ExternalMemory.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\Helper.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\IMemory.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\Input.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\Output.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\RandomAccessMemory.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\RealMachine.h" />
-    <ClInclude Include="..\..\..\Source\VirtualMachine\VirtualMachine.h" />
+    <Filter Include="VirtualMachine">
+      <UniqueIdentifier>{2b558fd6-3e4f-4ee9-91f9-14996b5da8cc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Context.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\ExternalMemory.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Helper.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\IInteruptHandler.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\IMemory.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Input.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\MemoryManagmentUnit.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Output.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\RandomAccessMemory.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\RealMachine.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\VirtualMachine.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\CentralProcessingUnit.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\VirtualMachine\Code.h">
+      <Filter>VirtualMachine</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

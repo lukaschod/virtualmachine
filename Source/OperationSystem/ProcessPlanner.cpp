@@ -202,7 +202,7 @@ void ProcessPlanner::SwitchContext(CentralProcessingUnitCore* core)
 	RunningProcess(process, core);
 
 	if (lastProcess != process)
-		printf("Loading context for process named %s\n", process->GetName());
+		printf("DEBUG: switching context to process named %s\n", process->GetName());
 
 	if (process->Get_physicalContext() == nullptr)
 	{

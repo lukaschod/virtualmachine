@@ -2,100 +2,53 @@
 #include <VirtualMachine\RealMachine.h>
 #include <VirtualMachine\RandomAccessMemory.h>
 #include <VirtualMachine\MemoryManagmentUnit.h>
+#include <VirtualMachine\ExternalMemory.h>
 #include <VirtualMachine\Code.h>
 #include <iostream>
-
-VirtualMachine* CreateOtherVirtualMachine(RealMachine* realMachine)
-{
-	const char* source =
-		"DATA FileHandle 0\n"
-		"DATA FilePath &C:\\Users\\Lukas-PC\\Source\\random2.txt&\n"
-		"DATA DataToWrite &Writing some stuff for fun...&\n"
-
-		"INTE 2 FilePath 2\n"
-		"STRM FileHandle\n"
-		"INTE 5 FileHandle DataToWrite 20\n"
-		"INTE 3 FileHandle\n"
-
-		"HALT";
-	auto code = new Program();
-	assert(code->CreateFromText(source));
-
-	auto virtualMachine = new VirtualMachine(realMachine);
-	virtualMachine->Allocate(code);
-
-	delete code;
-
-	return virtualMachine;
-}
+#include <conio.h>
+#include <string>
 
 int main(int argv, char* argc[])
 {
-	auto realMachine = new RealMachine(16);
+    // We initialize the hardware layer that will simulate our real PC hardware components
+    auto realMachineOptions = RealMachineCreateOptions();
+    realMachineOptions.pathToMachine = "D:\\Source\\virtualmachine\\Demo\\MyVirtualMachine\\";
+    realMachineOptions.pageCount = 60;
+    auto realMachine = new RealMachine(realMachineOptions);
 
-	const char* source = 
-		"DATA FileHandle 0\n"
-		"DATA FilePath &C:\\Users\\Lukas-PC\\Source\\random.txt&\n"
-		"DATA DataToWrite &Writing some stuff for fun...&\n"
-		"DATA SomeRandomSum 0\n"
+    auto core = (CentralProcessingUnitCore*)realMachine->GetCpu();
+    auto ram = realMachine->GetRam();
+    auto externalMemory = realMachine->Get_externalMemory();
 
-		"LDC JumpHereMyFriend\n"
-		"JMP\n"
+    auto source =
+        ".data message \"Hello I'm user code for BIOS\n\"\n"
+        "ldc.i4 message\n"
+        "int 1\n"
+        "halt\n";
+    auto program = new Program();
+    program->CreateFromText(source, strlen(source));
 
-		"LDI SomeRandomSum\n"
-		"LDC 1\n"
-		"ADD\n"
-		"STI SomeRandomSum\n"
+    auto virtualMachine = new VirtualMachine(program);
+    virtualMachine->WriteHeaderAndPageTable(core, (ram->Get_pageCount() - 10) * ram->Get_pageSize());
 
-		"#LABEL JumpHereMyFriend\n"
+    *core->Get_context() = virtualMachine->Get_context();
+    core->Get_context()->registerUserMode = false;
 
-		// [FileHandle] + [FilePath] = [SomeRandomSum]
-		"LDC FileHandle\n"
-		"LDC FilePath\n"
-		"ADD\n"
-		"STI SomeRandomSum\n"
+    // Allocate the segments
+    virtualMachine->WriteDataSegment(core);
+    virtualMachine->WriteCodeSegment(core);
+    virtualMachine->WriteStackSegment(core);
 
-		
+    core->Get_context()->registerUserMode = true;
 
-		// Open file
-		"LDC FilePath\n"
-		"LDC 2\n"
-		"INT 2\n"
-		"STI FileHandle\n"
+    //realMachine->GetCpu()->Set_interuptHandler(this); // Overrides cpu interupt handlers, its OS core.
+    realMachine->GetCpu()->SetInterupt(kInteruptCodeOSStart);
 
-		// Write to file
-		"LDI FileHandle\n"
-		"LDC DataToWrite\n"
-		"LDI SomeRandomSum\n"
-		"INT 5\n"
+    realMachine->Start(); // Start the real machine cores to run
+    realMachine->WaitTillFinishes(); // Wat till real machine finishes
 
-		// Close file
-		"LDI FileHandle\n"
-		"INT 3\n"
-		
-		"HALT";
-
-	auto code = new Program();
-	assert(code->CreateFromText(source));
-
-	auto virtualMachine = new VirtualMachine(realMachine);
-	virtualMachine->Allocate(code);
-
-	delete code;
-
-	realMachine->GetCpu()->SetContext(virtualMachine->GetContext());
-	realMachine->Start();
-	while (realMachine->GetCpu()->IsStarted());
-	realMachine->Stop();
-
-	/*auto vm2 = CreateOtherVirtualMachine(realMachine);
-	realMachine->GetCpu()->SetContext(vm2->GetContext());
-	realMachine->Start();
-	while (realMachine->GetCpu()->IsStarted());
-	realMachine->Stop();*/
-
-	delete virtualMachine;
-	delete realMachine;
+    // Cleanup everything
+    delete realMachine;
 
 	getchar();
 

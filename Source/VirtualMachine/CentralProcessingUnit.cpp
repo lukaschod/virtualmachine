@@ -256,10 +256,10 @@ void CentralProcessingUnit::ExecuteInstruction()
 		auto argumentCount = GetNextInstruction();
 		auto localCount = GetNextInstruction();
 		auto argumentsAddress = context.registerSC - argumentCount * sizeof(uint32_t);
+        ExecuteInstructionPush(argumentsAddress);
 		ExecuteInstructionPush(context.registerIC);
-		ExecuteInstructionPush(context.registerSC);
 		ExecuteInstructionPush(context.registerARG);
-		ExecuteInstructionPush(context.registerLOC);
+        ExecuteInstructionPush(context.registerLOC);
 		context.registerARG = argumentsAddress;
 		context.registerLOC = context.registerSC;
 		context.registerSC += argumentCount * sizeof(uint32_t);
@@ -272,8 +272,8 @@ void CentralProcessingUnit::ExecuteInstruction()
 		context.registerSC = context.registerLOC;
 		context.registerLOC = ExecuteInstructionPop();
 		context.registerARG = ExecuteInstructionPop();
-		context.registerSC = ExecuteInstructionPop();
 		context.registerIC = ExecuteInstructionPop();
+        context.registerSC = ExecuteInstructionPop();
 		return;
 	}
 
@@ -283,8 +283,8 @@ void CentralProcessingUnit::ExecuteInstruction()
 		context.registerSC = context.registerLOC;
 		context.registerLOC = ExecuteInstructionPop();
 		context.registerARG = ExecuteInstructionPop();
-		context.registerSC = ExecuteInstructionPop();
 		context.registerIC = ExecuteInstructionPop();
+        context.registerSC = ExecuteInstructionPop();
 		ExecuteInstructionPush(returnValue);
 		return;
 	}
@@ -417,12 +417,17 @@ void CentralProcessingUnit::ExecuteInstructionTest()
 
 		case kInteruptCodeFailurePage:
 		{
-			/*auto pageEntryAddress = ExecuteInstructionPop();
-			auto address = ram->AllocateMemory(this, mmu->Get_pageSize());
-			mmu->AllocatePage(this, pageEntryAddress, address);
-			context.registerIC = context.registerLastIC; // Rollback the instructions*/
+            auto pageEntryAddress = context.registerGeneral;
+            static int physicalAddress = 0;
+            mmu->AllocatePage((CentralProcessingUnitCore*)this, pageEntryAddress, physicalAddress);
+            physicalAddress += ram->Get_pageSize();
 			break;
 		}
+
+        case kInteruptCodeTimer:
+        {
+            context.registerTimer = 100;
+        }
 		}
 	}
 
